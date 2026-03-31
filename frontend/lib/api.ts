@@ -1,6 +1,6 @@
 import type { ArticlesResponse, Stats } from "@/types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/mon_pub/api";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/mon_pub";
 
 async function fetchJSON<T>(url: string): Promise<T> {
   const res = await fetch(url);

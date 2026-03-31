@@ -38,7 +38,7 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: /mon_pub/api
+        NEXT_PUBLIC_API_URL: /mon_pub
     restart: unless-stopped
     networks:
       - internal
@@ -52,4 +52,4 @@ networks:
     driver: bridge
   reestr_net:
     external: true
-    name: reestr-mvp_internal
+    name: registry-checker_internal

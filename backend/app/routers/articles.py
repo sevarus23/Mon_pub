@@ -96,8 +96,21 @@ async def get_quartiles(repo: ArticleRepository = Depends(_get_repo)):
 
 
 @router.get("/stats", response_model=StatsOut)
-async def get_stats(repo: ArticleRepository = Depends(_get_repo)):
-    return await repo.get_stats()
+async def get_stats(
+    repo: ArticleRepository = Depends(_get_repo),
+    quartile: str | None = None,
+    source: str | None = None,
+    article_type: str | None = None,
+    year: int | None = None,
+    search: str | None = None,
+):
+    return await repo.get_stats(
+        quartile=quartile,
+        source=source,
+        article_type=article_type,
+        year=year,
+        search=search,
+    )
 
 
 @router.get("/{article_id}", response_model=ArticleOut)

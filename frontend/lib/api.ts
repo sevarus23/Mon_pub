@@ -38,8 +38,15 @@ export async function getArticles(params: {
   return fetchJSON<ArticlesResponse>(`${BASE_URL}/api/articles${query}`);
 }
 
-export async function getStats(): Promise<Stats> {
-  return fetchJSON<Stats>(`${BASE_URL}/api/articles/stats`);
+export async function getStats(params?: {
+  quartile?: string;
+  source?: string;
+  article_type?: string;
+  year?: number;
+  search?: string;
+}): Promise<Stats> {
+  const query = params ? buildQuery(params) : "";
+  return fetchJSON<Stats>(`${BASE_URL}/api/articles/stats${query}`);
 }
 
 export async function getJournals(search?: string): Promise<string[]> {

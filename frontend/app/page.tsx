@@ -109,17 +109,20 @@ function HomeContent() {
     }
   }, []);
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async (f: FiltersType) => {
     try {
-      const data = await getStats();
+      const data = await getStats({
+        quartile: f.quartile || undefined,
+        search: f.search || undefined,
+        article_type: f.article_type || undefined,
+      });
       setStats(data);
     } catch {
       // Stats are non-critical
     }
   }, []);
 
-  useEffect(() => { fetchArticles(filters); }, [filters, fetchArticles]);
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => { fetchArticles(filters); fetchStats(filters); }, [filters, fetchArticles, fetchStats]);
 
   const handleFiltersChange = (newFilters: Partial<FiltersType>) => {
     setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));

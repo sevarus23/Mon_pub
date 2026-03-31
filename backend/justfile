@@ -1,0 +1,79 @@
+@default:
+	just --list
+set dotenv-load := true
+DATE := `date +"%Y-%m-%d"`
+clean-pyc:
+	find . -name '*.pyc' -exec rm -f {} +
+	find . -name '*.pyo' -exec rm -f {} +
+	find . -name '*~' -exec rm -f {} +
+
+up *args:
+    docker compose up {{ args }}
+
+kill *args:
+    docker compose kill {{ args }}
+
+down *args:
+    docker compose down {{ args }}
+
+ps *args:
+    docker compose ps {{ args }}
+
+logs *args:
+    docker compose logs {{ args }}
+
+mm *message:
+    docker compose exec app uv run alembic revision --autogenerate -m {{ message }}
+
+migrate:
+    docker compose exec app uv run alembic upgrade head
+
+downgrade *args:
+    docker compose exec app uv run alembic downgrade {{args}}
+
+test *args:
+    docker compose exec app uv run pytest --show-capture=stdout {{ args }}
+
+pre-commit:
+    uvx --with wemake-python-styleguide pre-commit run --show-diff-on-failure --color=always --all-files
+
+set_owner:
+    sudo chown -R $USER .
+
+stop:
+    docker stop b902b5075558 17b6e372c966
+
+check-backup-path:
+    mkdir -p ./sn_backend/backups
+
+backup-pg:
+    sh -c "$(python load_env.py)"
+    docker exec app_db pg_dump -C -d $POSTGRES_DB -U $POSTGRES_USER > ./sn_backend/backups/{{DATE}}_pgdump.sql
+    cd ./sn_backend/backups
+    tar cvzf ./sn_backend/backups/{{DATE}}_pgdump.tgz ./sn_backend/backups/{{DATE}}_pgdump.sql
+
+backup:
+    just check-backup-path && just backup-pg
+
+setup-pg-pass:
+	# prepare credentials
+	echo "#hostname:port:database:username:password" > .pgpass
+	echo app_db:${POSTGRES_PORT}:*:${POSTGRES_USER}:${POSTGRES_PASSWORD} >> .pgpass
+	chmod 600 .pgpass
+	cat .pgpass
+
+reset-pg:
+    just setup-pg-pass
+    docker exec app_db psql -U ${POSTGRES_USER} -c "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '${POSTGRES_DB}' AND pid <> pg_backend_pid();"
+    docker run --rm --network=app_master -e PGPASSFILE=/.pgpass -v ${PWD}/.pgpass:/.pgpass postgres:15.4-alpine \
+    dropdb -w -h app_db -U ${POSTGRES_USER} ${POSTGRES_DB} && \
+    docker run --rm --network=app_master -e PGPASSFILE=/.pgpass -v ${PWD}/.pgpass:/.pgpass postgres:15.4-alpine \
+    createdb -w -h app_db -U ${POSTGRES_USER} ${POSTGRES_DB}
+
+restore-pg-db file:
+    docker run --rm --network=app_master -e PGPASSFILE=/.pgpass -v ${PWD}/.pgpass:/.pgpass -v ${PWD}/{{file}}:/data/dump.sql postgres:18.0-alpine \
+    pg_restore -w -h app_db -U ${POSTGRES_USER} -d ${POSTGRES_DB} /data/dump.sql
+
+# pass the path of the .sql file from backups folder
+restore file:
+    just reset-pg && just restore-pg-db {{file}}

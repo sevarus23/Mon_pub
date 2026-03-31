@@ -1,0 +1,53 @@
+services:
+  app_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: iu_parsers
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: iu_parsers
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iu_parsers -d iu_parsers"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload"
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app/app
+      - ./data:/app/data:ro
+    depends_on:
+      app_db:
+        condition: service_healthy
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5051:80"
+    user: root
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - ./pgadmin/pgpass:/tmp/pgpass:ro
+    entrypoint: /bin/sh -c "cp /tmp/pgpass /var/lib/pgadmin/pgpass && chmod 600 /var/lib/pgadmin/pgpass && chown 5050:5050 /var/lib/pgadmin/pgpass && chown -R 5050:5050 /var/lib/pgadmin && exec /entrypoint.sh"
+    depends_on:
+      app_db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  pgadmin_data:

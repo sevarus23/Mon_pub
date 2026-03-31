@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "iu_parsers",
+      "Group": "Servers",
+      "Host": "app_db",
+      "Port": 5432,
+      "MaintenanceDB": "iu_parsers",
+      "Username": "iu_parsers",
+      "PassFile": "/var/lib/pgadmin/pgpass",
+      "SSLMode": "prefer"
+    }
+  }
+}

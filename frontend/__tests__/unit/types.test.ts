@@ -36,20 +36,20 @@ describe("getTypeLabel", () => {
 });
 
 describe("getQuartileClass", () => {
-  test("Q1 -> bg-q1-green", () => {
-    expect(getQuartileClass("Q1")).toBe("bg-q1-green");
+  test("Q1 -> bg-quartile-q1", () => {
+    expect(getQuartileClass("Q1")).toBe("bg-quartile-q1");
   });
 
-  test("Q2 -> bg-q2-blue", () => {
-    expect(getQuartileClass("Q2")).toBe("bg-q2-blue");
+  test("Q2 -> bg-quartile-q2", () => {
+    expect(getQuartileClass("Q2")).toBe("bg-quartile-q2");
   });
 
-  test("Q3 -> bg-q3-orange", () => {
-    expect(getQuartileClass("Q3")).toBe("bg-q3-orange");
+  test("Q3 -> bg-quartile-q3", () => {
+    expect(getQuartileClass("Q3")).toBe("bg-quartile-q3");
   });
 
-  test("Q4 -> bg-q4-gray", () => {
-    expect(getQuartileClass("Q4")).toBe("bg-q4-gray");
+  test("Q4 -> bg-quartile-q4", () => {
+    expect(getQuartileClass("Q4")).toBe("bg-quartile-q4");
   });
 
   test("null -> empty string", () => {

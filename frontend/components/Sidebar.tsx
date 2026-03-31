@@ -7,9 +7,17 @@ import { getArticles } from "@/lib/api";
 
 interface SidebarProps {
   stats: Stats | null;
+  onQuartileClick?: (q: string) => void;
 }
 
-export default function Sidebar({ stats }: SidebarProps) {
+const Q_COLORS: Record<string, string> = {
+  Q1: "text-quartile-q1 border-quartile-q1",
+  Q2: "text-quartile-q2 border-quartile-q2",
+  Q3: "text-quartile-q3 border-quartile-q3",
+  Q4: "text-quartile-q4 border-quartile-q4",
+};
+
+export default function Sidebar({ stats, onQuartileClick }: SidebarProps) {
   const [qCounts, setQCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -21,39 +29,53 @@ export default function Sidebar({ stats }: SidebarProps) {
   }, []);
 
   return (
-    <div>
+    <aside className="space-y-4">
       {/* Year distribution chart */}
-      <div className="bg-white rounded-[10px] p-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)] mb-5">
-        <h3 className="text-[1rem] text-[#333] mb-3">
+      <div className="bg-white rounded-card p-5 shadow-card">
+        <h3 className="text-sm font-semibold text-text mb-3">
           Распределение по годам
         </h3>
         {stats ? (
           <BarChart data={stats.by_year} />
         ) : (
           <div className="h-[180px] flex items-center justify-center">
-            <div className="animate-pulse text-[#999] text-sm">
+            <div className="animate-pulse text-text-muted text-sm">
               Загрузка...
             </div>
           </div>
         )}
       </div>
 
-      {/* Stat cards */}
-      <div className="flex flex-col gap-2.5">
-        <StatCard label="Статей в Q1" value={String(qCounts.Q1 ?? 0)} />
-        <StatCard label="Статей в Q2" value={String(qCounts.Q2 ?? 0)} />
-        <StatCard label="Статей в Q3" value={String(qCounts.Q3 ?? 0)} />
-        <StatCard label="Статей в Q4" value={String(qCounts.Q4 ?? 0)} />
+      {/* Quartile cards */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {(["Q1", "Q2", "Q3", "Q4"] as const).map((q) => (
+          <button
+            key={q}
+            onClick={() => onQuartileClick?.(q)}
+            className={`bg-white rounded-card py-3 px-4 shadow-card border-l-[3px] ${Q_COLORS[q]} flex flex-col items-center transition-all hover:shadow-card-hover cursor-pointer`}
+          >
+            <span className="text-lg font-bold">{qCounts[q] ?? 0}</span>
+            <span className="text-xs text-text-muted">{q}</span>
+          </button>
+        ))}
       </div>
-    </div>
-  );
-}
 
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-white rounded-[10px] py-4 px-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)] flex justify-between items-center">
-      <span className="text-[0.85rem] text-[#666]">{label}</span>
-      <span className="text-[1.2rem] font-bold text-primary">{value}</span>
-    </div>
+      {/* Top journals */}
+      {stats && stats.top_journals.length > 0 && (
+        <div className="bg-white rounded-card p-5 shadow-card">
+          <h3 className="text-sm font-semibold text-text mb-3">
+            Топ журналов
+          </h3>
+          <ul className="space-y-2">
+            {stats.top_journals.slice(0, 5).map((j) => (
+              <li key={j.journal_name} className="flex justify-between items-baseline text-xs">
+                <span className="text-text-secondary truncate mr-2">{j.journal_name}</span>
+                <span className="font-semibold text-primary shrink-0">{j.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </aside>
   );
 }

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Публикационная активность сотрудников",
-  description: "Система мониторинга публикационной активности сотрудников",
+  title: "Публикационная активность | Университет Иннополис",
+  description: "Мониторинг научных публикаций сотрудников Университета Иннополис",
 };
 
 export default function RootLayout({

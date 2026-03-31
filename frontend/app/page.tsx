@@ -59,7 +59,7 @@ function filtersToParams(f: FiltersType): string {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Загрузка...</div>}>
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen text-text-muted">Загрузка...</div>}>
       <HomeContent />
     </Suspense>
   );
@@ -76,7 +76,6 @@ function HomeContent() {
   const listRef = useRef<HTMLDivElement>(null);
   const isInitial = useRef(true);
 
-  // Sync filters -> URL
   useEffect(() => {
     if (isInitial.current) {
       isInitial.current = false;
@@ -115,17 +114,12 @@ function HomeContent() {
       const data = await getStats();
       setStats(data);
     } catch {
-      // Stats are non-critical, silently fail
+      // Stats are non-critical
     }
   }, []);
 
-  useEffect(() => {
-    fetchArticles(filters);
-  }, [filters, fetchArticles]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+  useEffect(() => { fetchArticles(filters); }, [filters, fetchArticles]);
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   const handleFiltersChange = (newFilters: Partial<FiltersType>) => {
     setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
@@ -136,25 +130,23 @@ function HomeContent() {
     fetchArticles({ ...filters, page: 1 });
   };
 
-  const handleReset = () => {
-    setFilters(DEFAULT_FILTERS);
-  };
+  const handleReset = () => setFilters(DEFAULT_FILTERS);
 
   const handlePageChange = (page: number) => {
     setFilters((prev) => ({ ...prev, page }));
     listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handleSortByChange = (sort_by: string) => {
-    setFilters((prev) => ({ ...prev, sort_by, page: 1 }));
-  };
-
-  const handleSortOrderChange = (sort_order: string) => {
-    setFilters((prev) => ({ ...prev, sort_order, page: 1 }));
+  const handleQuartileClick = (q: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      quartile: prev.quartile === q ? "" : q,
+      page: 1,
+    }));
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-surface-secondary">
       <Header stats={stats} />
       <Filters
         filters={filters}
@@ -162,29 +154,29 @@ function HomeContent() {
         onSearch={handleSearch}
         onReset={handleReset}
       />
-      <main className="max-w-[1280px] mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+      <main className="max-w-[1280px] mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
         <div ref={listRef}>
+          {/* Results header with sort */}
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[1.1rem] text-[#333]">
-              Результаты:{" "}
-              <span>
-                {articles ? articles.total.toLocaleString("ru-RU") : "..."}
-              </span>
-            </h2>
+            <p className="text-sm text-text-secondary">
+              {articles
+                ? `${articles.total.toLocaleString("ru-RU")} публикаций`
+                : "Загрузка..."}
+            </p>
             <div className="flex gap-2">
               <select
-                className="py-1.5 px-2.5 border border-[#d0d0d0] rounded-md text-[0.85rem] bg-white"
+                className="filter-select text-xs"
                 value={filters.sort_by}
-                onChange={(e) => handleSortByChange(e.target.value)}
+                onChange={(e) => setFilters((prev) => ({ ...prev, sort_by: e.target.value, page: 1 }))}
               >
                 <option value="published_at">По дате</option>
                 <option value="title">По названию</option>
                 <option value="cited_by_count">По цитированиям</option>
               </select>
               <select
-                className="py-1.5 px-2.5 border border-[#d0d0d0] rounded-md text-[0.85rem] bg-white"
+                className="filter-select text-xs"
                 value={filters.sort_order}
-                onChange={(e) => handleSortOrderChange(e.target.value)}
+                onChange={(e) => setFilters((prev) => ({ ...prev, sort_order: e.target.value, page: 1 }))}
               >
                 <option value="desc">По убыванию</option>
                 <option value="asc">По возрастанию</option>
@@ -196,6 +188,8 @@ function HomeContent() {
             articles={articles?.items ?? []}
             loading={loading}
             error={error}
+            onRetry={() => fetchArticles(filters)}
+            onReset={handleReset}
           />
 
           {articles && articles.pages > 1 && (
@@ -207,8 +201,8 @@ function HomeContent() {
           )}
         </div>
 
-        <Sidebar stats={stats} />
+        <Sidebar stats={stats} onQuartileClick={handleQuartileClick} />
       </main>
-    </>
+    </div>
   );
 }

@@ -113,15 +113,46 @@ class ArticleRepository:
             items=[ArticleOut.model_validate(a) for a in articles],
         )
 
-    async def get_stats(self) -> StatsOut:
+    async def get_stats(
+        self,
+        quartile: str | None = None,
+        source: str | None = None,
+        article_type: str | None = None,
+        year: int | None = None,
+        search: str | None = None,
+    ) -> StatsOut:
+        # Build optional WHERE conditions
+        conditions = []
+        if quartile:
+            conditions.append(Article.quartile == quartile)
+        if source:
+            conditions.append(Article.source == source)
+        if article_type:
+            conditions.append(Article.type == article_type)
+        if year:
+            conditions.append(func.extract("year", Article.published_at) == year)
+        if search:
+            like_pat = f"%{search}%"
+            conditions.append(
+                Article.title.ilike(like_pat) | Article.authors.ilike(like_pat)
+            )
+
+        def _where(stmt):
+            for c in conditions:
+                stmt = stmt.where(c)
+            return stmt
+
         total = (
-            await self._session.execute(select(func.count(Article.id)))
+            await self._session.execute(_where(select(func.count(Article.id))))
         ).scalar() or 0
 
         # Unique authors count via subquery
+        author_base = select(Article.authors).where(Article.authors.is_not(None))
+        for c in conditions:
+            author_base = author_base.where(c)
         author_subq = (
             select(
-                func.distinct(func.trim(func.unnest(func.string_to_array(Article.authors, ","))))
+                func.distinct(func.trim(func.unnest(func.string_to_array(author_base.subquery().c.authors, ","))))
             ).subquery()
         )
         total_authors = (
@@ -134,61 +165,56 @@ class ArticleRepository:
 
         new_today = (
             await self._session.execute(
-                select(func.count(Article.id)).where(Article.published_at == today)
+                _where(select(func.count(Article.id)).where(Article.published_at == today))
             )
         ).scalar() or 0
 
         new_this_week = (
             await self._session.execute(
-                select(func.count(Article.id)).where(Article.published_at >= week_ago)
+                _where(select(func.count(Article.id)).where(Article.published_at >= week_ago))
             )
         ).scalar() or 0
 
         month_ago = today - timedelta(days=30)
         new_this_month = (
             await self._session.execute(
-                select(func.count(Article.id)).where(Article.published_at >= month_ago)
+                _where(select(func.count(Article.id)).where(Article.published_at >= month_ago))
             )
         ).scalar() or 0
 
         # First published date
         first_published_date = (
             await self._session.execute(
-                select(func.min(Article.published_at))
-                .where(Article.published_at.is_not(None))
+                _where(select(func.min(Article.published_at))
+                .where(Article.published_at.is_not(None)))
             )
         ).scalar()
 
         # By source
-        source_rows = (
-            await self._session.execute(
-                select(Article.source, func.count(Article.id)).group_by(Article.source)
-            )
-        ).all()
+        source_q = select(Article.source, func.count(Article.id)).group_by(Article.source)
+        source_rows = (await self._session.execute(_where(source_q))).all()
         by_source = [SourceCount(source=r[0], count=r[1]) for r in source_rows]
 
         # By year
         year_expr = func.extract("year", Article.published_at).label("year")
-        year_rows = (
-            await self._session.execute(
-                select(year_expr, func.count(Article.id))
-                .where(Article.published_at.is_not(None))
-                .group_by(year_expr)
-                .order_by(year_expr.desc())
-            )
-        ).all()
+        year_q = (
+            select(year_expr, func.count(Article.id))
+            .where(Article.published_at.is_not(None))
+            .group_by(year_expr)
+            .order_by(year_expr.desc())
+        )
+        year_rows = (await self._session.execute(_where(year_q))).all()
         by_year = [YearCount(year=int(r[0]), count=r[1]) for r in year_rows]
 
         # Top journals
-        journal_rows = (
-            await self._session.execute(
-                select(Article.journal_name, func.count(Article.id))
-                .where(Article.journal_name.is_not(None))
-                .group_by(Article.journal_name)
-                .order_by(func.count(Article.id).desc())
-                .limit(10)
-            )
-        ).all()
+        journal_q = (
+            select(Article.journal_name, func.count(Article.id))
+            .where(Article.journal_name.is_not(None))
+            .group_by(Article.journal_name)
+            .order_by(func.count(Article.id).desc())
+            .limit(10)
+        )
+        journal_rows = (await self._session.execute(_where(journal_q))).all()
         top_journals = [JournalCount(journal_name=r[0], count=r[1]) for r in journal_rows]
 
         return StatsOut(

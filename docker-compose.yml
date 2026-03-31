@@ -1,0 +1,55 @@
+services:
+  mon_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: iu_parsers
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: iu_parsers
+    volumes:
+      - mon_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iu_parsers -d iu_parsers"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - internal
+      - reestr_net
+
+  mon_backend:
+    build: ./backend
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8001"
+    environment:
+      POSTGRES_HOST: mon_db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: iu_parsers
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: iu_parsers
+    depends_on:
+      mon_db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+      - reestr_net
+
+  mon_frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: /mon_pub
+    restart: unless-stopped
+    networks:
+      - internal
+      - reestr_net
+
+volumes:
+  mon_pgdata:
+
+networks:
+  internal:
+    driver: bridge
+  reestr_net:
+    external: true
+    name: registry-checker_internal

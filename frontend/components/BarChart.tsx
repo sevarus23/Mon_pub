@@ -18,22 +18,23 @@ export default function BarChart({ data }: BarChartProps) {
   const allSorted = [...data].sort((a, b) => a.year - b.year);
   const sorted = allSorted.slice(-10);
   const maxCount = Math.max(...sorted.map((d) => d.count), 1);
+  const BAR_AREA = 130;
 
   return (
-    <div className="flex items-end gap-1.5 h-[200px] mt-3">
+    <div className="flex items-end gap-1.5 mt-2" style={{ height: `${BAR_AREA + 40}px` }}>
       {sorted.map((item) => {
-        const height = Math.max(8, (item.count / maxCount) * 155);
+        const barH = Math.max(6, (item.count / maxCount) * BAR_AREA);
         return (
-          <div key={item.year} className="flex-1 flex flex-col items-center gap-1">
-            <div className="text-[0.7rem] text-text font-semibold">
+          <div key={item.year} className="flex-1 flex flex-col items-center justify-end h-full">
+            <div className="text-[0.65rem] text-text-secondary font-semibold mb-0.5">
               {item.count}
             </div>
             <div
-              className="w-full max-w-[36px] rounded-t-sm bg-primary transition-colors hover:bg-primary-light"
-              style={{ height: `${height}px` }}
+              className="w-full max-w-[32px] rounded-t-sm bg-primary transition-colors hover:bg-primary-light"
+              style={{ height: `${barH}px` }}
               title={`${item.year}: ${item.count} публикаций`}
             />
-            <div className="text-[0.68rem] text-text-muted">{item.year}</div>
+            <div className="text-[0.6rem] text-text-muted mt-1">{item.year}</div>
           </div>
         );
       })}

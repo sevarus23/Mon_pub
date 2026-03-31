@@ -33,14 +33,14 @@ export default function Pagination({
   }
 
   const btnBase =
-    "py-2 px-3.5 border border-[#d0d0d0] bg-white rounded-md cursor-pointer text-[0.85rem] transition-all hover:border-primary hover:text-primary";
+    "min-w-[40px] h-10 px-3 border border-surface-border bg-white rounded-md text-sm transition-all hover:border-primary hover:text-primary";
   const btnActive = "!bg-primary !text-white !border-primary";
-  const btnDisabled = "opacity-40 !cursor-default hover:border-[#d0d0d0] hover:text-inherit";
+  const btnDisabled = "opacity-40 !cursor-default hover:border-surface-border hover:text-inherit";
 
   return (
-    <div className="flex justify-center gap-1.5 mt-5">
+    <div className="flex justify-center gap-1.5 mt-6">
       <button
-        className={`${btnBase} ${currentPage === 1 ? btnDisabled : ""}`}
+        className={`${btnBase} ${currentPage === 1 ? btnDisabled : "cursor-pointer"}`}
         disabled={currentPage === 1}
         onClick={() => onPageChange(currentPage - 1)}
       >
@@ -58,7 +58,7 @@ export default function Pagination({
         return (
           <button
             key={p}
-            className={`${btnBase} ${p === currentPage ? btnActive : ""}`}
+            className={`${btnBase} cursor-pointer ${p === currentPage ? btnActive : ""}`}
             onClick={() => onPageChange(p)}
           >
             {p}
@@ -67,7 +67,7 @@ export default function Pagination({
       })}
 
       <button
-        className={`${btnBase} ${currentPage === totalPages ? btnDisabled : ""}`}
+        className={`${btnBase} ${currentPage === totalPages ? btnDisabled : "cursor-pointer"}`}
         disabled={currentPage === totalPages}
         onClick={() => onPageChange(currentPage + 1)}
       >

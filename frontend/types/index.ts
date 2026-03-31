@@ -110,10 +110,10 @@ export function getTypeLabel(type: string | null): string {
 
 export function getQuartileClass(q: string | null): string {
   switch (q) {
-    case "Q1": return "bg-q1-green";
-    case "Q2": return "bg-q2-blue";
-    case "Q3": return "bg-q3-orange";
-    case "Q4": return "bg-q4-gray";
+    case "Q1": return "bg-quartile-q1";
+    case "Q2": return "bg-quartile-q2";
+    case "Q3": return "bg-quartile-q3";
+    case "Q4": return "bg-quartile-q4";
     default: return "";
   }
 }

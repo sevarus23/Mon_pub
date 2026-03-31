@@ -1,6 +1,6 @@
 export interface Article {
   id: number;
-  num_id: number | null;
+  num_id: string;
   title: string;
   authors: string;
   doi: string | null;

@@ -29,6 +29,7 @@ class ArticleFilters(BaseModel):
     year: int | None = None
     quartile: str | None = None
     article_type: str | None = None
+    scopus_only: bool = False
     sort_by: SortBy = SortBy.published_at
     sort_order: SortOrder = SortOrder.desc
     page: int = Field(1, ge=1)

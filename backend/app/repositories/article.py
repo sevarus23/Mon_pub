@@ -120,6 +120,7 @@ class ArticleRepository:
         article_type: str | None = None,
         year: int | None = None,
         search: str | None = None,
+        scopus_only: bool = False,
     ) -> StatsOut:
         # Build optional WHERE conditions
         conditions = []
@@ -131,6 +132,9 @@ class ArticleRepository:
             conditions.append(Article.type == article_type)
         if year:
             conditions.append(func.extract("year", Article.published_at) == year)
+        if scopus_only:
+            from app.utils.scopus import get_scopus_issns
+            conditions.append(Article.issn.in_(get_scopus_issns()))
         if search:
             like_pat = f"%{search}%"
             conditions.append(
@@ -400,5 +404,12 @@ class ArticleRepository:
         if filters.article_type:
             query = query.where(Article.type == filters.article_type)
             count_query = count_query.where(Article.type == filters.article_type)
+
+        if filters.scopus_only:
+            from app.utils.scopus import get_scopus_issns
+            scopus_issns = get_scopus_issns()
+            cond = Article.issn.in_(scopus_issns)
+            query = query.where(cond)
+            count_query = count_query.where(cond)
 
         return query, count_query

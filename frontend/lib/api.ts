@@ -31,6 +31,7 @@ export async function getArticles(params: {
   date_to?: string;
   quartile?: string;
   article_type?: string;
+  scopus_only?: boolean;
   sort_by?: string;
   sort_order?: string;
 }): Promise<ArticlesResponse> {
@@ -44,6 +45,7 @@ export async function getStats(params?: {
   article_type?: string;
   year?: number;
   search?: string;
+  scopus_only?: boolean;
 }): Promise<Stats> {
   const query = params ? buildQuery(params) : "";
   return fetchJSON<Stats>(`${BASE_URL}/api/articles/stats${query}`);

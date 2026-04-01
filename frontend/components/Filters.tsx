@@ -66,6 +66,7 @@ export default function Filters({
     filters.quartile,
     filters.date_from,
     filters.date_to,
+    filters.scopus_only,
   ].filter(Boolean).length;
 
   return (
@@ -96,6 +97,16 @@ export default function Filters({
               ))}
             </select>
           </FilterGroup>
+
+          <label className="flex items-center gap-2 self-end h-[38px] cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={filters.scopus_only}
+              onChange={(e) => onChange({ scopus_only: e.target.checked })}
+              className="w-4 h-4 accent-primary rounded"
+            />
+            <span className="text-sm text-text-secondary whitespace-nowrap">Источники из Scopus</span>
+          </label>
 
           <button
             className="h-[38px] px-5 bg-primary text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-primary-dark self-end"
@@ -143,6 +154,9 @@ export default function Filters({
             )}
             {filters.date_to && (
               <Chip label={`По ${filters.date_to}`} onRemove={() => onChange({ date_to: "" })} />
+            )}
+            {filters.scopus_only && (
+              <Chip label="Scopus" onRemove={() => onChange({ scopus_only: false })} />
             )}
           </div>
         )}

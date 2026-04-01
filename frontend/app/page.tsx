@@ -18,6 +18,7 @@ const DEFAULT_FILTERS: FiltersType = {
   author: "",
   article_type: "",
   quartile: "",
+  scopus_only: false,
   sort_by: "published_at",
   sort_order: "desc",
   page: 1,
@@ -33,6 +34,7 @@ function filtersFromParams(params: URLSearchParams): FiltersType {
     author: params.get("author") || "",
     article_type: params.get("article_type") || "",
     quartile: params.get("quartile") || "",
+    scopus_only: params.get("scopus_only") === "true",
     sort_by: params.get("sort_by") || "published_at",
     sort_order: params.get("sort_order") || "desc",
     page: Number(params.get("page")) || 1,
@@ -49,6 +51,7 @@ function filtersToParams(f: FiltersType): string {
   if (f.author) sp.set("author", f.author);
   if (f.article_type) sp.set("article_type", f.article_type);
   if (f.quartile) sp.set("quartile", f.quartile);
+  if (f.scopus_only) sp.set("scopus_only", "true");
   if (f.sort_by && f.sort_by !== "published_at") sp.set("sort_by", f.sort_by);
   if (f.sort_order && f.sort_order !== "desc") sp.set("sort_order", f.sort_order);
   if (f.page > 1) sp.set("page", String(f.page));
@@ -98,6 +101,7 @@ function HomeContent() {
         date_to: f.date_to ? `${f.date_to}-12-31` : undefined,
         quartile: f.quartile || undefined,
         article_type: f.article_type || undefined,
+        scopus_only: f.scopus_only || undefined,
         sort_by: f.sort_by || undefined,
         sort_order: f.sort_order || undefined,
       });
@@ -115,6 +119,7 @@ function HomeContent() {
         quartile: f.quartile || undefined,
         search: f.search || undefined,
         article_type: f.article_type || undefined,
+        scopus_only: f.scopus_only || undefined,
       });
       setStats(data);
     } catch {

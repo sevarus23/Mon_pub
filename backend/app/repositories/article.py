@@ -1,8 +1,8 @@
 import math
 from datetime import date, timedelta
 
-from sqlalchemy import desc, func, select, text
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import String, desc, func, select, text
+from sqlalchemy.dialects.postgresql import ARRAY, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Article
@@ -134,7 +134,8 @@ class ArticleRepository:
             conditions.append(func.extract("year", Article.published_at) == year)
         if scopus_only:
             from app.utils.scopus import get_scopus_issns
-            conditions.append(Article.issn.in_(get_scopus_issns()))
+            scopus_issns = list(get_scopus_issns())
+            conditions.append(Article.issn == func.any_(func.cast(scopus_issns, ARRAY(String))))
         if search:
             like_pat = f"%{search}%"
             conditions.append(
@@ -407,8 +408,8 @@ class ArticleRepository:
 
         if filters.scopus_only:
             from app.utils.scopus import get_scopus_issns
-            scopus_issns = get_scopus_issns()
-            cond = Article.issn.in_(scopus_issns)
+            scopus_issns = list(get_scopus_issns())
+            cond = Article.issn == func.any_(func.cast(scopus_issns, ARRAY(String)))
             query = query.where(cond)
             count_query = count_query.where(cond)
 

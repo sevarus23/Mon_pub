@@ -7,10 +7,10 @@
  */
 
 // Replicate buildQuery since it's not exported
-function buildQuery(params: Record<string, string | number | undefined>): string {
+function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
   const sp = new URLSearchParams();
   for (const [key, val] of Object.entries(params)) {
-    if (val !== undefined && val !== "" && val !== null) {
+    if (val !== undefined && val !== "" && val !== null && val !== false) {
       sp.set(key, String(val));
     }
   }
@@ -42,5 +42,13 @@ describe("buildQuery", () => {
   test("number values are converted to strings", () => {
     const result = buildQuery({ page: 5 });
     expect(result).toBe("?page=5");
+  });
+
+  test("false boolean values are excluded", () => {
+    expect(buildQuery({ scopus_only: false, page: 1 })).toBe("?page=1");
+  });
+
+  test("true boolean values are included", () => {
+    expect(buildQuery({ scopus_only: true, page: 1 })).toContain("scopus_only=true");
   });
 });

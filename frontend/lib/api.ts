@@ -10,10 +10,10 @@ async function fetchJSON<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-function buildQuery(params: Record<string, string | number | undefined>): string {
+function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
   const sp = new URLSearchParams();
   for (const [key, val] of Object.entries(params)) {
-    if (val !== undefined && val !== "" && val !== null) {
+    if (val !== undefined && val !== "" && val !== null && val !== false) {
       sp.set(key, String(val));
     }
   }

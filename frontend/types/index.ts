@@ -60,6 +60,7 @@ export interface Filters {
   author: string;
   article_type: string;
   quartile: string;
+  scopus_only: boolean;
   sort_by: string;
   sort_order: string;
   page: number;

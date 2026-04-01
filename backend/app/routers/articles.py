@@ -42,6 +42,7 @@ async def list_articles(
     year: int | None = None,
     quartile: str | None = None,
     article_type: str | None = None,
+    scopus_only: bool = False,
     sort_by: SortBy = SortBy.published_at,
     sort_order: SortOrder = SortOrder.desc,
 ):
@@ -58,6 +59,7 @@ async def list_articles(
         year=year,
         quartile=quartile,
         article_type=article_type,
+        scopus_only=scopus_only,
         sort_by=sort_by,
         sort_order=sort_order,
         page=page,
@@ -103,6 +105,7 @@ async def get_stats(
     article_type: str | None = None,
     year: int | None = None,
     search: str | None = None,
+    scopus_only: bool = False,
 ):
     return await repo.get_stats(
         quartile=quartile,
@@ -110,6 +113,7 @@ async def get_stats(
         article_type=article_type,
         year=year,
         search=search,
+        scopus_only=scopus_only,
     )
 
 

@@ -97,6 +97,31 @@ async def get_quartiles(repo: ArticleRepository = Depends(_get_repo)):
     return await repo.get_quartiles()
 
 
+@router.get("/openalex-search")
+async def openalex_search(
+    search: str = "",
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    date_from: date | None = None,
+    date_to: date | None = None,
+    sort_by: SortBy = SortBy.published_at,
+    sort_order: SortOrder = SortOrder.desc,
+):
+    from app.services.openalex import search_openalex
+    try:
+        return await search_openalex(
+            search=search,
+            page=page,
+            per_page=per_page,
+            date_from=date_from,
+            date_to=date_to,
+            sort_by=sort_by.value,
+            sort_order=sort_order.value,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"OpenAlex API error: {e}")
+
+
 @router.get("/stats", response_model=StatsOut)
 async def get_stats(
     repo: ArticleRepository = Depends(_get_repo),

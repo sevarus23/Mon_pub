@@ -1,5 +1,6 @@
 import logging
-from datetime import date
+import math
+from datetime import date, datetime
 
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -142,3 +143,95 @@ async def parse_openalex(since_date: date | None = None) -> int:
 
     logger.info("OpenAlex parsing complete: %d new articles", inserted)
     return inserted
+
+
+# --- Real-time OpenAlex search (global mode) ---
+
+SORT_MAP = {
+    "published_at": "publication_date",
+    "cited_by_count": "cited_by_count",
+    "title": "display_name",
+}
+
+MAILTO = "t.bektleuov@innopolis.university"
+
+
+async def search_openalex(
+    search: str = "",
+    page: int = 1,
+    per_page: int = 20,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    sort_by: str = "published_at",
+    sort_order: str = "desc",
+) -> dict:
+    """Query OpenAlex API in real-time and return PaginatedArticles-shaped dict."""
+    params: dict[str, str | int] = {
+        "page": page,
+        "per_page": per_page,
+        "mailto": MAILTO,
+    }
+
+    if search:
+        params["search"] = search
+
+    filter_parts: list[str] = []
+    if date_from:
+        filter_parts.append(f"from_publication_date:{date_from.isoformat()}")
+    if date_to:
+        filter_parts.append(f"to_publication_date:{date_to.isoformat()}")
+    if filter_parts:
+        params["filter"] = ",".join(filter_parts)
+
+    oa_sort = SORT_MAP.get(sort_by, "publication_date")
+    params["sort"] = f"{oa_sort}:{'desc' if sort_order == 'desc' else 'asc'}"
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(BASE_URL, params=params, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+
+    results = data.get("results", [])
+    meta = data.get("meta", {})
+    total = min(meta.get("count", 0), 10000)  # OpenAlex caps at 10k for page-based
+    now = datetime.utcnow().isoformat()
+
+    items = []
+    for work in results:
+        authorships = work.get("authorships", [])
+        doi_raw = work.get("doi")
+        doi = doi_raw.replace("https://doi.org/", "") if doi_raw else None
+
+        primary_loc = work.get("primary_location") or {}
+        source = primary_loc.get("source") or {}
+        journal = source.get("display_name")
+        issn = source.get("issn_l")
+
+        openalex_id = _extract_openalex_id(work.get("id", ""))
+
+        items.append({
+            "id": abs(hash(openalex_id)) % (2**31),
+            "num_id": f"oa_{openalex_id}",
+            "title": work.get("title") or "Untitled",
+            "authors": _parse_authors(authorships),
+            "doi": doi,
+            "published_at": work.get("publication_date"),
+            "journal_name": journal,
+            "issn": issn,
+            "type": normalize_type(primary_loc.get("raw_type")),
+            "quartile": None,
+            "publisher": source.get("host_organization_name"),
+            "cited_by_count": work.get("cited_by_count"),
+            "language": work.get("language"),
+            "source": "openalex",
+            "created_at": now,
+            "updated_at": now,
+        })
+
+    return {
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": math.ceil(total / per_page) if per_page else 0,
+        "items": items,
+    }

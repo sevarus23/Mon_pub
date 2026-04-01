@@ -4,9 +4,10 @@ import type { Stats } from "@/types";
 
 interface HeaderProps {
   stats: Stats | null;
+  globalMode?: boolean;
 }
 
-export default function Header({ stats }: HeaderProps) {
+export default function Header({ stats, globalMode }: HeaderProps) {
   const today = new Date().toLocaleDateString("ru-RU");
 
   return (
@@ -20,19 +21,25 @@ export default function Header({ stats }: HeaderProps) {
             Данные на {today}
           </p>
         </div>
-        <div className="flex gap-6 items-center">
-          <StatBox
-            value={stats?.total ?? 0}
-            label={
-              stats?.first_published_date
-                ? `с ${new Date(stats.first_published_date).toLocaleDateString("ru-RU")}`
-                : "всего"
-            }
-          />
-          <StatBox value={stats?.new_today ?? 0} label="сегодня" />
-          <StatBox value={stats?.new_this_week ?? 0} label="за неделю" />
-          <StatBox value={stats?.new_this_month ?? 0} label="за месяц" />
-        </div>
+        {globalMode ? (
+          <div className="text-xs text-primary bg-primary-50 px-3 py-1.5 rounded-full font-medium">
+            Глобальный поиск OpenAlex
+          </div>
+        ) : (
+          <div className="flex gap-6 items-center">
+            <StatBox
+              value={stats?.total ?? 0}
+              label={
+                stats?.first_published_date
+                  ? `с ${new Date(stats.first_published_date).toLocaleDateString("ru-RU")}`
+                  : "всего"
+              }
+            />
+            <StatBox value={stats?.new_today ?? 0} label="сегодня" />
+            <StatBox value={stats?.new_this_week ?? 0} label="за неделю" />
+            <StatBox value={stats?.new_this_month ?? 0} label="за месяц" />
+          </div>
+        )}
       </div>
     </header>
   );

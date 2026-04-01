@@ -72,41 +72,63 @@ export default function Filters({
   return (
     <div className="bg-white border-b border-surface-border">
       <div className="max-w-[1280px] mx-auto px-5 py-4">
+        {/* Mode toggle */}
+        <div className="flex items-center gap-4 mb-3">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={filters.iu_only}
+              onChange={(e) => onChange({ iu_only: e.target.checked })}
+              className="w-4 h-4 accent-primary rounded"
+            />
+            <span className="text-sm font-medium text-text">Только Innopolis University</span>
+          </label>
+          {!filters.iu_only && (
+            <span className="text-xs text-primary bg-primary-50 px-2 py-0.5 rounded-full">
+              Глобальный поиск OpenAlex
+            </span>
+          )}
+        </div>
+
         {/* Primary row: search + quartile + actions */}
         <div className="flex flex-wrap gap-3 items-end">
           <FilterGroup label="Поиск">
             <input
               type="text"
               className="filter-input w-[300px] max-w-full"
-              placeholder="ФИО автора или название статьи..."
+              placeholder={filters.iu_only ? "ФИО автора или название статьи..." : "Поиск по всему OpenAlex..."}
               value={searchValue}
               onChange={(e) => handleSearchInput(e.target.value)}
               onKeyDown={handleKeyDown}
             />
           </FilterGroup>
 
-          <FilterGroup label="Квартиль">
-            <select
-              className="filter-select min-w-[100px]"
-              value={filters.quartile}
-              onChange={(e) => onChange({ quartile: e.target.value })}
-            >
-              <option value="">Все</option>
-              {quartiles.map((q) => (
-                <option key={q} value={q}>{q}</option>
-              ))}
-            </select>
-          </FilterGroup>
+          {filters.iu_only && (
+            <FilterGroup label="Квартиль">
+              <select
+                className="filter-select min-w-[100px]"
+                value={filters.quartile}
+                onChange={(e) => onChange({ quartile: e.target.value })}
+              >
+                <option value="">Все</option>
+                {quartiles.map((q) => (
+                  <option key={q} value={q}>{q}</option>
+                ))}
+              </select>
+            </FilterGroup>
+          )}
 
-          <label className="flex items-center gap-2 self-end h-[38px] cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={filters.scopus_only}
-              onChange={(e) => onChange({ scopus_only: e.target.checked })}
-              className="w-4 h-4 accent-primary rounded"
-            />
-            <span className="text-sm text-text-secondary whitespace-nowrap">Источники из Scopus</span>
-          </label>
+          {filters.iu_only && (
+            <label className="flex items-center gap-2 self-end h-[38px] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={filters.scopus_only}
+                onChange={(e) => onChange({ scopus_only: e.target.checked })}
+                className="w-4 h-4 accent-primary rounded"
+              />
+              <span className="text-sm text-text-secondary whitespace-nowrap">Источники из Scopus</span>
+            </label>
+          )}
 
           <button
             className="h-[38px] px-5 bg-primary text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-primary-dark self-end"
@@ -187,31 +209,35 @@ export default function Filters({
               />
             </FilterGroup>
 
-            <FilterGroup label="Издание">
-              <select
-                className="filter-select min-w-[180px]"
-                value={filters.journal_name}
-                onChange={(e) => onChange({ journal_name: e.target.value })}
-              >
-                <option value="">Все издания</option>
-                {journals.map((j) => (
-                  <option key={j} value={j}>{j}</option>
-                ))}
-              </select>
-            </FilterGroup>
+            {filters.iu_only && (
+              <>
+                <FilterGroup label="Издание">
+                  <select
+                    className="filter-select min-w-[180px]"
+                    value={filters.journal_name}
+                    onChange={(e) => onChange({ journal_name: e.target.value })}
+                  >
+                    <option value="">Все издания</option>
+                    {journals.map((j) => (
+                      <option key={j} value={j}>{j}</option>
+                    ))}
+                  </select>
+                </FilterGroup>
 
-            <FilterGroup label="Тип статьи">
-              <select
-                className="filter-select min-w-[150px]"
-                value={filters.article_type}
-                onChange={(e) => onChange({ article_type: e.target.value })}
-              >
-                <option value="">Все типы</option>
-                {types.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </FilterGroup>
+                <FilterGroup label="Тип статьи">
+                  <select
+                    className="filter-select min-w-[150px]"
+                    value={filters.article_type}
+                    onChange={(e) => onChange({ article_type: e.target.value })}
+                  >
+                    <option value="">Все типы</option>
+                    {types.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </FilterGroup>
+              </>
+            )}
           </div>
         )}
       </div>

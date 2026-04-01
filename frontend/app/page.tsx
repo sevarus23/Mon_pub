@@ -7,7 +7,7 @@ import Filters from "@/components/Filters";
 import ArticleList from "@/components/ArticleList";
 import Sidebar from "@/components/Sidebar";
 import Pagination from "@/components/Pagination";
-import { getArticles, getStats } from "@/lib/api";
+import { getArticles, getStats, searchOpenAlex } from "@/lib/api";
 import type { ArticlesResponse, Stats, Filters as FiltersType } from "@/types";
 
 const DEFAULT_FILTERS: FiltersType = {
@@ -19,6 +19,7 @@ const DEFAULT_FILTERS: FiltersType = {
   article_type: "",
   quartile: "",
   scopus_only: false,
+  iu_only: true,
   sort_by: "published_at",
   sort_order: "desc",
   page: 1,
@@ -35,6 +36,7 @@ function filtersFromParams(params: URLSearchParams): FiltersType {
     article_type: params.get("article_type") || "",
     quartile: params.get("quartile") || "",
     scopus_only: params.get("scopus_only") === "true",
+    iu_only: params.get("iu_only") !== "false",
     sort_by: params.get("sort_by") || "published_at",
     sort_order: params.get("sort_order") || "desc",
     page: Number(params.get("page")) || 1,
@@ -52,6 +54,7 @@ function filtersToParams(f: FiltersType): string {
   if (f.article_type) sp.set("article_type", f.article_type);
   if (f.quartile) sp.set("quartile", f.quartile);
   if (f.scopus_only) sp.set("scopus_only", "true");
+  if (!f.iu_only) sp.set("iu_only", "false");
   if (f.sort_by && f.sort_by !== "published_at") sp.set("sort_by", f.sort_by);
   if (f.sort_order && f.sort_order !== "desc") sp.set("sort_order", f.sort_order);
   if (f.page > 1) sp.set("page", String(f.page));
@@ -79,6 +82,8 @@ function HomeContent() {
   const listRef = useRef<HTMLDivElement>(null);
   const isInitial = useRef(true);
 
+  const globalMode = !filters.iu_only;
+
   useEffect(() => {
     if (isInitial.current) {
       isInitial.current = false;
@@ -91,20 +96,33 @@ function HomeContent() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getArticles({
-        page: f.page,
-        per_page: f.per_page,
-        search: f.search || undefined,
-        journal_name: f.journal_name || undefined,
-        author: f.author || undefined,
-        date_from: f.date_from ? `${f.date_from}-01-01` : undefined,
-        date_to: f.date_to ? `${f.date_to}-12-31` : undefined,
-        quartile: f.quartile || undefined,
-        article_type: f.article_type || undefined,
-        scopus_only: f.scopus_only || undefined,
-        sort_by: f.sort_by || undefined,
-        sort_order: f.sort_order || undefined,
-      });
+      let data: ArticlesResponse;
+      if (f.iu_only) {
+        data = await getArticles({
+          page: f.page,
+          per_page: f.per_page,
+          search: f.search || undefined,
+          journal_name: f.journal_name || undefined,
+          author: f.author || undefined,
+          date_from: f.date_from ? `${f.date_from}-01-01` : undefined,
+          date_to: f.date_to ? `${f.date_to}-12-31` : undefined,
+          quartile: f.quartile || undefined,
+          article_type: f.article_type || undefined,
+          scopus_only: f.scopus_only || undefined,
+          sort_by: f.sort_by || undefined,
+          sort_order: f.sort_order || undefined,
+        });
+      } else {
+        data = await searchOpenAlex({
+          page: f.page,
+          per_page: f.per_page,
+          search: f.search || undefined,
+          date_from: f.date_from ? `${f.date_from}-01-01` : undefined,
+          date_to: f.date_to ? `${f.date_to}-12-31` : undefined,
+          sort_by: f.sort_by || undefined,
+          sort_order: f.sort_order || undefined,
+        });
+      }
       setArticles(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка загрузки данных");
@@ -114,6 +132,10 @@ function HomeContent() {
   }, []);
 
   const fetchStats = useCallback(async (f: FiltersType) => {
+    if (!f.iu_only) {
+      setStats(null);
+      return;
+    }
     try {
       const data = await getStats({
         quartile: f.quartile || undefined,
@@ -138,7 +160,7 @@ function HomeContent() {
     fetchArticles({ ...filters, page: 1 });
   };
 
-  const handleReset = () => setFilters(DEFAULT_FILTERS);
+  const handleReset = () => setFilters({ ...DEFAULT_FILTERS, iu_only: filters.iu_only });
 
   const handlePageChange = (page: number) => {
     setFilters((prev) => ({ ...prev, page }));
@@ -155,7 +177,7 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-surface-secondary">
-      <Header stats={stats} />
+      <Header stats={stats} globalMode={globalMode} />
       <Filters
         filters={filters}
         onChange={handleFiltersChange}
@@ -164,12 +186,12 @@ function HomeContent() {
       />
       <main className="max-w-[1280px] mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
         <div ref={listRef}>
-          {/* Results header with sort */}
           <div className="flex justify-between items-center mb-4">
             <p className="text-sm text-text-secondary">
               {articles
                 ? `${articles.total.toLocaleString("ru-RU")} публикаций`
                 : "Загрузка..."}
+              {globalMode && <span className="ml-2 text-xs text-primary">(OpenAlex)</span>}
             </p>
             <div className="flex gap-2">
               <select
@@ -209,7 +231,7 @@ function HomeContent() {
           )}
         </div>
 
-        <Sidebar stats={stats} onQuartileClick={handleQuartileClick} />
+        <Sidebar stats={stats} onQuartileClick={handleQuartileClick} globalMode={globalMode} />
       </main>
     </div>
   );

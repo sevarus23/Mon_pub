@@ -8,6 +8,7 @@ import { getArticles } from "@/lib/api";
 interface SidebarProps {
   stats: Stats | null;
   onQuartileClick?: (q: string) => void;
+  globalMode?: boolean;
 }
 
 const Q_COLORS: Record<string, string> = {
@@ -17,7 +18,7 @@ const Q_COLORS: Record<string, string> = {
   Q4: "text-quartile-q4 border-quartile-q4",
 };
 
-export default function Sidebar({ stats, onQuartileClick }: SidebarProps) {
+export default function Sidebar({ stats, onQuartileClick, globalMode }: SidebarProps) {
   const [qCounts, setQCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -27,6 +28,18 @@ export default function Sidebar({ stats, onQuartileClick }: SidebarProps) {
         .catch(() => {});
     }
   }, []);
+
+  if (globalMode) {
+    return (
+      <aside className="space-y-4">
+        <div className="bg-white rounded-card p-5 shadow-card text-center">
+          <p className="text-sm text-text-muted">
+            Статистика и графики доступны только для публикаций Innopolis University
+          </p>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="space-y-4">

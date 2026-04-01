@@ -61,6 +61,7 @@ export interface Filters {
   article_type: string;
   quartile: string;
   scopus_only: boolean;
+  iu_only: boolean;
   sort_by: string;
   sort_order: string;
   page: number;

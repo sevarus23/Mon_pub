@@ -69,3 +69,16 @@ export async function getAuthors(search?: string): Promise<string[]> {
 export async function getQuartiles(): Promise<string[]> {
   return fetchJSON<string[]>(`${BASE_URL}/api/articles/quartiles`);
 }
+
+export async function searchOpenAlex(params: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+  sort_by?: string;
+  sort_order?: string;
+}): Promise<ArticlesResponse> {
+  const query = buildQuery(params);
+  return fetchJSON<ArticlesResponse>(`${BASE_URL}/api/articles/openalex-search${query}`);
+}

@@ -33,6 +33,7 @@ def _make_article(**overrides) -> ArticleOut:
         source="crossref",
         topics=["AI", "Machine Learning"],
         white_list_level=1,
+        core_rank=None,
         created_at=datetime(2024, 1, 1),
         updated_at=datetime(2024, 1, 1),
     )
@@ -122,7 +123,7 @@ class TestGetArticle:
             doi="10.1/x", published_at=date(2024, 1, 1),
             journal_name="J", issn="1234-5678", type="Articles",
             quartile="Q1", publisher="P", cited_by_count=5,
-            language="en", source="crossref", topics=["AI"], white_list_level=1,
+            language="en", source="crossref", topics=["AI"], white_list_level=1, core_rank=None,
             created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
         ).items():
             setattr(mock_article, field, val)
@@ -240,7 +241,7 @@ class TestExportEndpoint:
             doi="10.1/x", published_at=date(2024, 1, 1),
             journal_name="J", issn="1234-5678", type="Articles",
             quartile="Q1", publisher="P", cited_by_count=5,
-            language="en", source="crossref", topics=["AI"], white_list_level=1,
+            language="en", source="crossref", topics=["AI"], white_list_level=1, core_rank=None,
             created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
         ).items():
             setattr(mock_article, field, val)
@@ -260,7 +261,7 @@ class TestExportEndpoint:
             doi="10.1/x", published_at=date(2024, 1, 1),
             journal_name="J", issn="1234-5678", type="Articles",
             quartile="Q1", publisher="P", cited_by_count=5,
-            language="en", source="crossref", topics=[], white_list_level=None,
+            language="en", source="crossref", topics=[], white_list_level=None, core_rank=None,
             created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
         ).items():
             setattr(mock_article, field, val)

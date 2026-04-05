@@ -8,6 +8,7 @@ import ArticleList from "@/components/ArticleList";
 import Sidebar from "@/components/Sidebar";
 import Pagination from "@/components/Pagination";
 import SourcesTable from "@/components/SourcesTable";
+import ConferencesTable from "@/components/ConferencesTable";
 import { getArticles, getStats, searchOpenAlex, getExportUrl } from "@/lib/api";
 import type { ArticlesResponse, Stats, Filters as FiltersType } from "@/types";
 
@@ -89,7 +90,7 @@ function HomeContent() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"articles" | "sources">("articles");
+  const [activeTab, setActiveTab] = useState<"articles" | "sources" | "conferences">("articles");
   const listRef = useRef<HTMLDivElement>(null);
   const isInitial = useRef(true);
 
@@ -221,12 +222,26 @@ function HomeContent() {
           >
             Источники
           </button>
+          <button
+            onClick={() => setActiveTab("conferences")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+              activeTab === "conferences"
+                ? "border-primary text-primary"
+                : "border-transparent text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            Конференции
+          </button>
         </div>
       </div>
 
       {activeTab === "sources" ? (
         <main className="max-w-[1280px] mx-auto px-5 py-6">
           <SourcesTable />
+        </main>
+      ) : activeTab === "conferences" ? (
+        <main className="max-w-[1280px] mx-auto px-5 py-6">
+          <ConferencesTable />
         </main>
       ) : (
       <main className="max-w-[1280px] mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">

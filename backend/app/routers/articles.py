@@ -10,6 +10,7 @@ from app.repositories.article import ArticleRepository
 from app.schemas.article import (
     ArticleFilters,
     ArticleOut,
+    ConferenceInfo,
     PaginatedArticles,
     ParseResponse,
     SortBy,
@@ -48,6 +49,7 @@ async def list_articles(
     topic: str | None = None,
     scopus_only: bool = False,
     white_list_only: bool = False,
+    core_rank: str | None = None,
     sort_by: SortBy = SortBy.published_at,
     sort_order: SortOrder = SortOrder.desc,
 ):
@@ -67,6 +69,7 @@ async def list_articles(
         topic=topic,
         scopus_only=scopus_only,
         white_list_only=white_list_only,
+        core_rank=core_rank,
         sort_by=sort_by,
         sort_order=sort_order,
         page=page,
@@ -112,6 +115,14 @@ async def get_topics(
     return await repo.get_topics(search=search)
 
 
+@router.get("/conferences-table", response_model=list[ConferenceInfo])
+async def get_conferences_table(
+    search: str | None = None,
+    repo: ArticleRepository = Depends(_get_repo),
+):
+    return await repo.get_conferences_table(search=search)
+
+
 @router.get("/sources-table", response_model=list[SourceInfo])
 async def get_sources_table(
     search: str | None = None,
@@ -139,6 +150,7 @@ async def export_articles(
     topic: str | None = None,
     scopus_only: bool = False,
     white_list_only: bool = False,
+    core_rank: str | None = None,
     sort_by: SortBy = SortBy.published_at,
     sort_order: SortOrder = SortOrder.desc,
 ):
@@ -158,6 +170,7 @@ async def export_articles(
         topic=topic,
         scopus_only=scopus_only,
         white_list_only=white_list_only,
+        core_rank=core_rank,
         sort_by=sort_by,
         sort_order=sort_order,
     )
@@ -266,3 +279,12 @@ async def trigger_update_white_list(
     from app.services.white_list import update_white_list_levels
     updated = await update_white_list_levels(session)
     return ParseResponse(message=f"White list updated: {updated} articles")
+
+
+@router.post("/update-core-ranks", response_model=ParseResponse)
+async def trigger_update_core_ranks(
+    session: AsyncSession = Depends(get_session),
+):
+    from app.services.core_ranks import update_core_ranks
+    updated = await update_core_ranks(session)
+    return ParseResponse(message=f"CORE ranks updated: {updated} articles")

@@ -69,6 +69,12 @@ export default function ArticleCard({ article }: ArticleCardProps) {
           </span>
         )}
 
+        {article.core_rank && (
+          <span className="inline-block py-0.5 px-2 rounded text-xs font-bold bg-violet-600 text-white" title="CORE Conference Ranking">
+            {`CORE ${article.core_rank}`}
+          </span>
+        )}
+
         <span className="py-0.5 px-2 rounded bg-type-bg text-type-text text-xs font-medium">
           {typeLabel}
         </span>

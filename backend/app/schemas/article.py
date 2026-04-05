@@ -32,6 +32,7 @@ class ArticleFilters(BaseModel):
     topic: str | None = None
     scopus_only: bool = False
     white_list_only: bool = False
+    core_rank: str | None = None
     sort_by: SortBy = SortBy.published_at
     sort_order: SortOrder = SortOrder.desc
     page: int = Field(1, ge=1)
@@ -71,6 +72,7 @@ class ArticleOut(BaseModel):
     source: str
     topics: list[str] = []
     white_list_level: int | None = None
+    core_rank: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -120,6 +122,14 @@ class SourceInfo(BaseModel):
     white_list_level: int | None
     in_scopus: bool
     in_white_list: bool
+
+
+class ConferenceInfo(BaseModel):
+    journal_name: str
+    article_count: int
+    core_rank: str | None
+    quartile: str | None
+    white_list_level: int | None
 
 
 class ParseResponse(BaseModel):

@@ -338,7 +338,84 @@ class TestWhiteListFilter:
 
     async def test_update_white_list_200(self, client, mock_repo):
         from unittest.mock import patch, AsyncMock
-        with patch("app.services.white_list.update_white_list_levels", new_callable=AsyncMock):
+        with patch("app.services.white_list.update_white_list_levels", new_callable=AsyncMock, return_value=100):
             resp = await client.post("/api/articles/update-white-list")
         assert resp.status_code == 200
         assert "message" in resp.json()
+
+    async def test_core_rank_filter_200(self, client, mock_repo):
+        mock_repo.get_filtered.return_value = _make_paginated(items=[], total=0, pages=0)
+        resp = await client.get("/api/articles?core_rank=A*")
+        assert resp.status_code == 200
+
+
+class TestSourcesTableEndpoint:
+    """Tests for GET /api/articles/sources-table."""
+
+    async def test_sources_table_200(self, client, mock_repo):
+        from app.schemas.article import SourceInfo
+        mock_repo.get_sources_table.return_value = [
+            SourceInfo(
+                journal_name="Nature", issn="0028-0836", article_count=10,
+                quartile="Q1", white_list_level=1, in_scopus=True, in_white_list=True,
+            )
+        ]
+        resp = await client.get("/api/articles/sources-table")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["journal_name"] == "Nature"
+        assert data[0]["in_scopus"] is True
+
+    async def test_sources_table_with_search(self, client, mock_repo):
+        mock_repo.get_sources_table.return_value = []
+        resp = await client.get("/api/articles/sources-table?search=nat")
+        assert resp.status_code == 200
+
+    async def test_sources_table_empty(self, client, mock_repo):
+        mock_repo.get_sources_table.return_value = []
+        resp = await client.get("/api/articles/sources-table")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+
+class TestConferencesTableEndpoint:
+    """Tests for GET /api/articles/conferences-table."""
+
+    async def test_conferences_table_200(self, client, mock_repo):
+        from app.schemas.article import ConferenceInfo
+        mock_repo.get_conferences_table.return_value = [
+            ConferenceInfo(
+                journal_name="AAAI", article_count=4,
+                core_rank="A*", quartile=None, white_list_level=None,
+            )
+        ]
+        resp = await client.get("/api/articles/conferences-table")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["core_rank"] == "A*"
+
+    async def test_conferences_table_with_search(self, client, mock_repo):
+        mock_repo.get_conferences_table.return_value = []
+        resp = await client.get("/api/articles/conferences-table?search=aaai")
+        assert resp.status_code == 200
+
+    async def test_conferences_table_empty(self, client, mock_repo):
+        mock_repo.get_conferences_table.return_value = []
+        resp = await client.get("/api/articles/conferences-table")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+
+class TestUpdateCoreRanks:
+    """Tests for POST /api/articles/update-core-ranks."""
+
+    async def test_update_core_ranks_200(self, client, mock_repo):
+        from unittest.mock import patch, AsyncMock
+        with patch("app.services.core_ranks.update_core_ranks", new_callable=AsyncMock, return_value=50):
+            resp = await client.post("/api/articles/update-core-ranks")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "message" in body
+        assert "50" in body["message"]

@@ -82,6 +82,25 @@ export default function ArticleCard({ article }: ArticleCardProps) {
           </span>
         )}
       </div>
+
+      {/* Topics */}
+      {article.topics && article.topics.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {article.topics.slice(0, 5).map((topic) => (
+            <span
+              key={topic}
+              className="inline-block py-0.5 px-2 rounded-full bg-blue-50 text-blue-700 text-[0.65rem] font-medium"
+            >
+              {topic}
+            </span>
+          ))}
+          {article.topics.length > 5 && (
+            <span className="text-[0.65rem] text-text-muted self-center">
+              +{article.topics.length - 5}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

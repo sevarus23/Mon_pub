@@ -7,7 +7,7 @@ import Filters from "@/components/Filters";
 import ArticleList from "@/components/ArticleList";
 import Sidebar from "@/components/Sidebar";
 import Pagination from "@/components/Pagination";
-import { getArticles, getStats, searchOpenAlex } from "@/lib/api";
+import { getArticles, getStats, searchOpenAlex, getExportUrl } from "@/lib/api";
 import type { ArticlesResponse, Stats, Filters as FiltersType } from "@/types";
 
 const DEFAULT_FILTERS: FiltersType = {
@@ -17,9 +17,11 @@ const DEFAULT_FILTERS: FiltersType = {
   journal_name: "",
   author: "",
   article_type: "",
+  topic: "",
   quartile: "",
   scopus_only: false,
   iu_only: true,
+  institution: "",
   sort_by: "published_at",
   sort_order: "desc",
   page: 1,
@@ -34,9 +36,11 @@ function filtersFromParams(params: URLSearchParams): FiltersType {
     journal_name: params.get("journal_name") || "",
     author: params.get("author") || "",
     article_type: params.get("article_type") || "",
+    topic: params.get("topic") || "",
     quartile: params.get("quartile") || "",
     scopus_only: params.get("scopus_only") === "true",
     iu_only: params.get("iu_only") !== "false",
+    institution: params.get("institution") || "",
     sort_by: params.get("sort_by") || "published_at",
     sort_order: params.get("sort_order") || "desc",
     page: Number(params.get("page")) || 1,
@@ -52,9 +56,11 @@ function filtersToParams(f: FiltersType): string {
   if (f.journal_name) sp.set("journal_name", f.journal_name);
   if (f.author) sp.set("author", f.author);
   if (f.article_type) sp.set("article_type", f.article_type);
+  if (f.topic) sp.set("topic", f.topic);
   if (f.quartile) sp.set("quartile", f.quartile);
   if (f.scopus_only) sp.set("scopus_only", "true");
   if (!f.iu_only) sp.set("iu_only", "false");
+  if (f.institution) sp.set("institution", f.institution);
   if (f.sort_by && f.sort_by !== "published_at") sp.set("sort_by", f.sort_by);
   if (f.sort_order && f.sort_order !== "desc") sp.set("sort_order", f.sort_order);
   if (f.page > 1) sp.set("page", String(f.page));
@@ -108,6 +114,7 @@ function HomeContent() {
           date_to: f.date_to ? `${f.date_to}-12-31` : undefined,
           quartile: f.quartile || undefined,
           article_type: f.article_type || undefined,
+          topic: f.topic || undefined,
           scopus_only: f.scopus_only || undefined,
           sort_by: f.sort_by || undefined,
           sort_order: f.sort_order || undefined,
@@ -121,6 +128,7 @@ function HomeContent() {
           date_to: f.date_to ? `${f.date_to}-12-31` : undefined,
           sort_by: f.sort_by || undefined,
           sort_order: f.sort_order || undefined,
+          institution: f.institution || undefined,
         });
       }
       setArticles(data);
@@ -187,12 +195,56 @@ function HomeContent() {
       <main className="max-w-[1280px] mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
         <div ref={listRef}>
           <div className="flex justify-between items-center mb-4">
-            <p className="text-sm text-text-secondary">
-              {articles
-                ? `${articles.total.toLocaleString("ru-RU")} публикаций`
-                : "Загрузка..."}
-              {globalMode && <span className="ml-2 text-xs text-primary">(OpenAlex)</span>}
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-text-secondary">
+                {articles
+                  ? `${articles.total.toLocaleString("ru-RU")} публикаций`
+                  : "Загрузка..."}
+                {globalMode && <span className="ml-2 text-xs text-primary">(OpenAlex)</span>}
+              </p>
+              {!globalMode && articles && articles.total > 0 && (
+                <div className="flex gap-1">
+                  <a
+                    href={getExportUrl({
+                      search: filters.search || undefined,
+                      journal_name: filters.journal_name || undefined,
+                      author: filters.author || undefined,
+                      date_from: filters.date_from ? `${filters.date_from}-01-01` : undefined,
+                      date_to: filters.date_to ? `${filters.date_to}-12-31` : undefined,
+                      quartile: filters.quartile || undefined,
+                      article_type: filters.article_type || undefined,
+                      topic: filters.topic || undefined,
+                      scopus_only: filters.scopus_only || undefined,
+                      sort_by: filters.sort_by || undefined,
+                      sort_order: filters.sort_order || undefined,
+                    }, "xlsx")}
+                    className="text-xs px-2 py-1 border border-surface-border rounded hover:border-primary hover:text-primary transition-colors"
+                    download
+                  >
+                    XLSX
+                  </a>
+                  <a
+                    href={getExportUrl({
+                      search: filters.search || undefined,
+                      journal_name: filters.journal_name || undefined,
+                      author: filters.author || undefined,
+                      date_from: filters.date_from ? `${filters.date_from}-01-01` : undefined,
+                      date_to: filters.date_to ? `${filters.date_to}-12-31` : undefined,
+                      quartile: filters.quartile || undefined,
+                      article_type: filters.article_type || undefined,
+                      topic: filters.topic || undefined,
+                      scopus_only: filters.scopus_only || undefined,
+                      sort_by: filters.sort_by || undefined,
+                      sort_order: filters.sort_order || undefined,
+                    }, "csv")}
+                    className="text-xs px-2 py-1 border border-surface-border rounded hover:border-primary hover:text-primary transition-colors"
+                    download
+                  >
+                    CSV
+                  </a>
+                </div>
+              )}
+            </div>
             <div className="flex gap-2">
               <select
                 className="filter-select text-xs"

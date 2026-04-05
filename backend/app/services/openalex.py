@@ -117,6 +117,14 @@ async def parse_openalex(since_date: date | None = None) -> int:
                     issn_list = source.get("issn")
                     issn = issn_list[0] if issn_list else None
 
+                # Extract topics from OpenAlex
+                raw_topics = work.get("topics", [])
+                topics = [t["display_name"] for t in raw_topics[:10] if t.get("display_name")]
+                if not topics:
+                    concepts = work.get("concepts", [])
+                    topics = [c["display_name"] for c in concepts[:10]
+                              if c.get("display_name") and c.get("score", 0) > 0.3]
+
                 articles.append(ArticleCreate(
                     num_id=f"oa_{openalex_id}",
                     title=title,
@@ -130,6 +138,7 @@ async def parse_openalex(since_date: date | None = None) -> int:
                     cited_by_count=work.get("cited_by_count"),
                     language=work.get("language"),
                     source="openalex",
+                    topics=topics,
                 ))
 
             if articles:
@@ -164,6 +173,7 @@ async def search_openalex(
     date_to: date | None = None,
     sort_by: str = "published_at",
     sort_order: str = "desc",
+    institution: str | None = None,
 ) -> dict:
     """Query OpenAlex API in real-time and return PaginatedArticles-shaped dict."""
     params: dict[str, str | int] = {
@@ -176,6 +186,8 @@ async def search_openalex(
         params["search"] = search
 
     filter_parts: list[str] = []
+    if institution:
+        filter_parts.append(f"authorships.institutions.search:{institution}")
     if date_from:
         filter_parts.append(f"from_publication_date:{date_from.isoformat()}")
     if date_to:
@@ -209,6 +221,13 @@ async def search_openalex(
 
         openalex_id = _extract_openalex_id(work.get("id", ""))
 
+        raw_topics = work.get("topics", [])
+        topics = [t["display_name"] for t in raw_topics[:10] if t.get("display_name")]
+        if not topics:
+            concepts = work.get("concepts", [])
+            topics = [c["display_name"] for c in concepts[:10]
+                      if c.get("display_name") and c.get("score", 0) > 0.3]
+
         items.append({
             "id": abs(hash(openalex_id)) % (2**31),
             "num_id": f"oa_{openalex_id}",
@@ -224,6 +243,7 @@ async def search_openalex(
             "cited_by_count": work.get("cited_by_count"),
             "language": work.get("language"),
             "source": "openalex",
+            "topics": topics,
             "created_at": now,
             "updated_at": now,
         })

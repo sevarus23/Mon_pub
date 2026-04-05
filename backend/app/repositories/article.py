@@ -315,6 +315,32 @@ class ArticleRepository:
         )
         return list(result.scalars().all())
 
+    async def get_topics(self, search: str | None = None) -> list[str]:
+        topic_expr = func.unnest(Article.topics).label("topic")
+        subq = select(topic_expr).where(Article.topics != "{}").subquery()
+        col = subq.c.topic
+
+        if search:
+            ws = func.word_similarity(search, col).label("ws")
+            query = (
+                select(col, ws)
+                .where(col != "")
+                .where(ws > 0.2)
+                .distinct()
+                .order_by(ws.desc())
+                .limit(50)
+            )
+        else:
+            query = (
+                select(col)
+                .where(col != "")
+                .distinct()
+                .order_by(col)
+                .limit(50)
+            )
+        rows = (await self._session.execute(query)).all()
+        return [r[0] for r in rows]
+
     async def normalize_all_types(self) -> int:
         """Update existing articles with normalized type mapping."""
         updated = 0
@@ -328,6 +354,28 @@ class ArticleRepository:
             updated += result.rowcount
         await self._session.commit()
         return updated
+
+    async def get_all_filtered(self, filters: ArticleFilters, limit: int = 10000) -> list[Article]:
+        query = select(Article)
+        count_query = select(func.count(Article.id))
+
+        has_fuzzy = any([filters.search, filters.journal_name, filters.author, filters.title])
+        if has_fuzzy:
+            await self._session.execute(
+                text(f"SET pg_trgm.similarity_threshold = {SIMILARITY_THRESHOLD}")
+            )
+
+        query, _ = self._apply_filters(query, count_query, filters)
+
+        sort_column = getattr(Article, filters.sort_by.value)
+        if filters.sort_order == SortOrder.desc:
+            query = query.order_by(sort_column.desc().nullslast())
+        else:
+            query = query.order_by(sort_column.asc().nullsfirst())
+
+        query = query.limit(limit)
+        result = await self._session.execute(query)
+        return list(result.scalars().all())
 
     # ---- private ----
 
@@ -350,10 +398,15 @@ class ArticleRepository:
         if filters.search:
             like_pat = f"%{filters.search}%"
             author_cond = self._author_fuzzy_cond(filters.search)
+            # FTS: stemming via plainto_tsquery
+            fts_cond = Article.search_vector.op("@@")(
+                func.plainto_tsquery("english", filters.search)
+            )
             cond = (
                 Article.title.ilike(like_pat)
                 | (func.word_similarity(filters.search, Article.title) > 0.6)
                 | author_cond
+                | fts_cond
             )
             query = query.where(cond)
             count_query = count_query.where(cond)
@@ -405,6 +458,11 @@ class ArticleRepository:
         if filters.article_type:
             query = query.where(Article.type == filters.article_type)
             count_query = count_query.where(Article.type == filters.article_type)
+
+        if filters.topic:
+            cond = Article.topics.any(filters.topic)
+            query = query.where(cond)
+            count_query = count_query.where(cond)
 
         if filters.scopus_only:
             from app.utils.scopus import get_scopus_issns

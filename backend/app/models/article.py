@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, Index, Integer, String, Text, func
+from sqlalchemy import Column, Date, Index, Integer, String, Text, func
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -23,6 +24,8 @@ class Article(Base):
     cited_by_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     language: Mapped[str | None] = mapped_column(String(10), nullable=True)
     source: Mapped[str] = mapped_column(String(20), nullable=False)
+    topics: Mapped[list[str]] = mapped_column(ARRAY(String), server_default="{}", nullable=False)
+    search_vector = Column(TSVECTOR)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
@@ -33,4 +36,6 @@ class Article(Base):
         Index("idx_articles_doi", "doi"),
         Index("idx_articles_issn", "issn"),
         Index("idx_articles_published_at", "published_at"),
+        Index("idx_articles_topics", "topics", postgresql_using="gin"),
+        Index("idx_articles_fts", "search_vector", postgresql_using="gin"),
     )

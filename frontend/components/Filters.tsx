@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Filters as FiltersType } from "@/types";
-import { getJournals, getArticleTypes, getQuartiles } from "@/lib/api";
+import { getJournals, getArticleTypes, getQuartiles, getAuthors, getTopics } from "@/lib/api";
+import Autocomplete from "./Autocomplete";
 
 interface FiltersProps {
   filters: FiltersType;
@@ -17,7 +18,6 @@ export default function Filters({
   onSearch,
   onReset,
 }: FiltersProps) {
-  const [journals, setJournals] = useState<string[]>([]);
   const [types, setTypes] = useState<string[]>([]);
   const [quartiles, setQuartiles] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState(filters.search);
@@ -25,7 +25,6 @@ export default function Filters({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    getJournals().then(setJournals).catch(() => {});
     getArticleTypes().then(setTypes).catch(() => {});
     getQuartiles().then(setQuartiles).catch(() => {});
   }, []);
@@ -63,10 +62,12 @@ export default function Filters({
   const activeCount = [
     filters.journal_name,
     filters.article_type,
+    filters.topic,
     filters.quartile,
     filters.date_from,
     filters.date_to,
     filters.scopus_only,
+    filters.institution,
   ].filter(Boolean).length;
 
   return (
@@ -168,6 +169,9 @@ export default function Filters({
             {filters.article_type && (
               <Chip label={`Тип: ${filters.article_type}`} onRemove={() => onChange({ article_type: "" })} />
             )}
+            {filters.topic && (
+              <Chip label={`Тема: ${filters.topic}`} onRemove={() => onChange({ topic: "" })} />
+            )}
             {filters.quartile && (
               <Chip label={filters.quartile} onRemove={() => onChange({ quartile: "" })} />
             )}
@@ -179,6 +183,9 @@ export default function Filters({
             )}
             {filters.scopus_only && (
               <Chip label="Scopus" onRemove={() => onChange({ scopus_only: false })} />
+            )}
+            {filters.institution && (
+              <Chip label={`Институция: ${filters.institution}`} onRemove={() => onChange({ institution: "" })} />
             )}
           </div>
         )}
@@ -212,16 +219,13 @@ export default function Filters({
             {filters.iu_only && (
               <>
                 <FilterGroup label="Издание">
-                  <select
-                    className="filter-select min-w-[180px]"
+                  <Autocomplete
                     value={filters.journal_name}
-                    onChange={(e) => onChange({ journal_name: e.target.value })}
-                  >
-                    <option value="">Все издания</option>
-                    {journals.map((j) => (
-                      <option key={j} value={j}>{j}</option>
-                    ))}
-                  </select>
+                    onSearch={getJournals}
+                    onChange={(val) => onChange({ journal_name: val })}
+                    placeholder="Начните вводить..."
+                    className="min-w-[220px]"
+                  />
                 </FilterGroup>
 
                 <FilterGroup label="Тип статьи">
@@ -236,7 +240,29 @@ export default function Filters({
                     ))}
                   </select>
                 </FilterGroup>
+
+                <FilterGroup label="Тема">
+                  <Autocomplete
+                    value={filters.topic}
+                    onSearch={getTopics}
+                    onChange={(val) => onChange({ topic: val })}
+                    placeholder="AI, transport..."
+                    className="min-w-[200px]"
+                  />
+                </FilterGroup>
               </>
+            )}
+
+            {!filters.iu_only && (
+              <FilterGroup label="Институция">
+                <input
+                  type="text"
+                  className="filter-input w-[220px]"
+                  placeholder="Innopolis, MIT, HSE..."
+                  value={filters.institution}
+                  onChange={(e) => onChange({ institution: e.target.value })}
+                />
+              </FilterGroup>
             )}
           </div>
         )}

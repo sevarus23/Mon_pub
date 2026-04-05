@@ -1,4 +1,4 @@
-import type { ArticlesResponse, Stats, SourceInfo } from "@/types";
+import type { ArticlesResponse, Stats, SourceInfo, ConferenceInfo } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/mon_pub";
 
@@ -75,6 +75,11 @@ export async function getQuartiles(): Promise<string[]> {
 export async function getTopics(search?: string): Promise<string[]> {
   const query = search ? `?search=${encodeURIComponent(search)}` : "";
   return fetchJSON<string[]>(`${BASE_URL}/api/articles/topics${query}`);
+}
+
+export async function getConferencesTable(search?: string): Promise<ConferenceInfo[]> {
+  const query = search ? `?search=${encodeURIComponent(search)}` : "";
+  return fetchJSON<ConferenceInfo[]>(`${BASE_URL}/api/articles/conferences-table${query}`);
 }
 
 export async function getSourcesTable(search?: string): Promise<SourceInfo[]> {

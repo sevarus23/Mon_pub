@@ -15,6 +15,7 @@ from app.schemas.article import (
     PaginatedArticles,
     SortOrder,
     SourceCount,
+    ConferenceInfo,
     SourceInfo,
     StatsOut,
     YearCount,
@@ -388,6 +389,41 @@ class ArticleRepository:
             for r in rows
         ]
 
+    async def get_conferences_table(self, search: str | None = None) -> list[ConferenceInfo]:
+        query = (
+            select(
+                Article.journal_name,
+                func.count(Article.id).label("article_count"),
+                func.max(Article.core_rank).label("core_rank"),
+                func.max(Article.quartile).label("quartile"),
+                func.max(Article.white_list_level).label("white_list_level"),
+            )
+            .where(Article.journal_name.is_not(None))
+            .where(Article.core_rank.is_not(None))
+            .group_by(Article.journal_name)
+            .order_by(func.count(Article.id).desc())
+        )
+
+        if search:
+            await self._session.execute(
+                text(f"SET pg_trgm.similarity_threshold = {SIMILARITY_THRESHOLD}")
+            )
+            query = query.where(
+                func.word_similarity(search, Article.journal_name) > 0.3
+            )
+
+        rows = (await self._session.execute(query)).all()
+        return [
+            ConferenceInfo(
+                journal_name=r.journal_name,
+                article_count=r.article_count,
+                core_rank=r.core_rank,
+                quartile=r.quartile,
+                white_list_level=r.white_list_level,
+            )
+            for r in rows
+        ]
+
     async def normalize_all_types(self) -> int:
         """Update existing articles with normalized type mapping."""
         updated = 0
@@ -525,6 +561,11 @@ class ArticleRepository:
 
         if filters.white_list_only:
             cond = Article.white_list_level.is_not(None)
+            query = query.where(cond)
+            count_query = count_query.where(cond)
+
+        if filters.core_rank:
+            cond = Article.core_rank == filters.core_rank
             query = query.where(cond)
             count_query = count_query.where(cond)
 

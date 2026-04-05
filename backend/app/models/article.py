@@ -26,6 +26,7 @@ class Article(Base):
     source: Mapped[str] = mapped_column(String(20), nullable=False)
     topics: Mapped[list[str]] = mapped_column(ARRAY(String), server_default="{}", nullable=False)
     white_list_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    core_rank: Mapped[str | None] = mapped_column(String(10), nullable=True)
     search_vector = Column(TSVECTOR)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
@@ -39,5 +40,6 @@ class Article(Base):
         Index("idx_articles_published_at", "published_at"),
         Index("idx_articles_topics", "topics", postgresql_using="gin"),
         Index("idx_articles_white_list_level", "white_list_level"),
+        Index("idx_articles_core_rank", "core_rank"),
         Index("idx_articles_fts", "search_vector", postgresql_using="gin"),
     )

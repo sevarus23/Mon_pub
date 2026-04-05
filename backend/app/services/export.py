@@ -18,6 +18,7 @@ COLUMNS = [
     ("Тип", "type"),
     ("Квартиль", "quartile"),
     ("Белый список МОН", "white_list_level"),
+    ("CORE Rank", "core_rank"),
     ("Издатель", "publisher"),
     ("Цитирования", "cited_by_count"),
     ("Язык", "language"),

@@ -15,6 +15,7 @@ export interface Article {
   source: string | null;
   topics: string[];
   white_list_level: number | null;
+  core_rank: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +82,14 @@ export interface SourceInfo {
   white_list_level: number | null;
   in_scopus: boolean;
   in_white_list: boolean;
+}
+
+export interface ConferenceInfo {
+  journal_name: string;
+  article_count: number;
+  core_rank: string | null;
+  quartile: string | null;
+  white_list_level: number | null;
 }
 
 export const TYPE_LABELS: Record<string, string> = {

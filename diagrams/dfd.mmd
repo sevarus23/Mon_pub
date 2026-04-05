@@ -1,0 +1,117 @@
+flowchart TB
+    subgraph EXT["Внешние источники"]
+        CR["🔗 CrossRef API\naffiliation=Innopolis\n100/page, offset"]
+        OA["🔗 OpenAlex API\nROR: 02b7jh107\n200/page, cursor"]
+        SJR["📄 SJR CSV\nscimagojr_2024.csv"]
+        SCOPUS["📄 Scopus Index\nscopus_issns.json"]
+    end
+
+    subgraph BACKEND["⚙️ Backend — FastAPI"]
+        SCHED["⏰ APScheduler\nкаждые 24 часа"]
+
+        subgraph PARSE["Сервисы парсинга"]
+            PC["parse_crossref\nHTTP + tenacity retry\nфильтр ignored DOIs\n+ subject → topics"]
+            PO["parse_openalex\nHTTP async\nфильтр affiliation + год ≥ 2012\n+ topics/concepts"]
+        end
+
+        subgraph ENRICH["Обогащение данных"]
+            UQ["update_quartiles\nISSN → Q1/Q2/Q3/Q4"]
+            NT["normalize_types\nTYPE_MAPPING → 7 категорий"]
+            BT["backfill_topics\nOpenAlex DOI lookup\n→ topics[]"]
+        end
+
+        subgraph REPO["ArticleRepository"]
+            BU["bulk_upsert\nON CONFLICT DO NOTHING\nпо DOI или num_id"]
+            GF["get_filtered\npg_trgm + tsvector FTS\nstemming + fuzzy"]
+            GS["get_stats\nагрегация: по годам,\nисточникам, журналам"]
+            EXP["export_xlsx / export_csv\nStreamingResponse"]
+        end
+
+        subgraph ENDPOINTS["REST API"]
+            E1["GET /api/articles\nпоиск + фильтры + topic\n+ пагинация"]
+            E2["GET /api/articles/stats\nстатистика"]
+            E3["GET /api/articles/openalex-search\nглобальный поиск\n+ institution filter"]
+            E4["POST /api/articles/parse"]
+            E5["POST /api/articles/update-quartiles"]
+            E6["POST /api/articles/normalize-types"]
+            E7["GET /api/articles/export\nformat=xlsx|csv"]
+            E8["GET /api/articles/topics\nsearch autocomplete"]
+            E9["POST /api/articles/backfill-topics"]
+        end
+    end
+
+    subgraph DB["🗄️ PostgreSQL 16"]
+        ARTICLES[("articles\npg_trgm + tsvector\ntopics TEXT[]\nGIN + B-tree indexes")]
+    end
+
+    subgraph FRONT["🖥️ Frontend — Next.js 14"]
+        HEADER["Header\ntotal, new today/week/month"]
+        FILTERS["Filters + Autocomplete\nsearch, journal, type, topic,\ndate, quartile, institution"]
+        LIST["ArticleList\nкарточки + topic badges"]
+        SIDEBAR["Sidebar\nграфик по годам,\nквартили, top журналы"]
+        EXPORT["Кнопки XLSX / CSV\nскачивание с фильтрами"]
+    end
+
+    USER(("👤 Пользователь"))
+
+    %% Ingestion flow
+    SCHED -->|"запуск"| PC
+    SCHED -->|"параллельно"| PO
+    CR -->|"JSON response"| PC
+    OA -->|"JSON response"| PO
+    PC -->|"articles[] + topics"| BU
+    PO -->|"articles[] + topics"| BU
+    BU -->|"INSERT"| ARTICLES
+
+    %% Enrichment flow
+    SCHED -->|"после парсинга"| UQ
+    SCHED -->|"после парсинга"| NT
+    SJR -->|"CSV read"| UQ
+    UQ -->|"UPDATE quartile"| ARTICLES
+    NT -->|"UPDATE type"| ARTICLES
+    OA -->|"DOI batch lookup"| BT
+    BT -->|"UPDATE topics"| ARTICLES
+
+    %% Manual triggers
+    E4 -->|"background task"| SCHED
+    E5 -->|"background task"| UQ
+    E6 -->|"background task"| NT
+    E9 -->|"background task"| BT
+
+    %% Query flow
+    ARTICLES -->|"SELECT"| GF
+    ARTICLES -->|"SELECT"| GS
+    ARTICLES -->|"SELECT"| EXP
+    SCOPUS -->|"ISSN filter"| GF
+    GF -->|"results"| E1
+    GS -->|"stats"| E2
+    EXP -->|"file"| E7
+    GF -->|"topics"| E8
+    OA -->|"real-time + institution"| E3
+
+    %% Frontend flow
+    E1 -->|"JSON"| LIST
+    E1 -->|"JSON"| FILTERS
+    E2 -->|"JSON"| HEADER
+    E2 -->|"JSON"| SIDEBAR
+    E3 -->|"JSON"| LIST
+    E7 -->|"file download"| EXPORT
+    E8 -->|"JSON"| FILTERS
+
+    USER -->|"поиск и фильтры"| FILTERS
+    USER -->|"просмотр"| LIST
+    USER -->|"аналитика"| SIDEBAR
+    USER -->|"скачивание"| EXPORT
+
+    %% Styling
+    classDef ext fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
+    classDef svc fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef db fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef front fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef user fill:#fce4ec,stroke:#c62828,stroke-width:2px
+
+    class CR,OA,SJR,SCOPUS ext
+    class PC,PO,UQ,NT,BT,BU,GF,GS,EXP,SCHED svc
+    class ARTICLES db
+    class HEADER,FILTERS,LIST,SIDEBAR,EXPORT front
+    class USER user

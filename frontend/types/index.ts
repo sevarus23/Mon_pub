@@ -66,6 +66,7 @@ export interface Filters {
   quartile: string;
   scopus_only: boolean;
   white_list_only: boolean;
+  core_rank: string;
   iu_only: boolean;
   institution: string;
   sort_by: string;

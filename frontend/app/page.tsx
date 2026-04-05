@@ -23,6 +23,7 @@ const DEFAULT_FILTERS: FiltersType = {
   quartile: "",
   scopus_only: false,
   white_list_only: false,
+  core_rank: "",
   iu_only: true,
   institution: "",
   sort_by: "published_at",
@@ -43,6 +44,7 @@ function filtersFromParams(params: URLSearchParams): FiltersType {
     quartile: params.get("quartile") || "",
     scopus_only: params.get("scopus_only") === "true",
     white_list_only: params.get("white_list_only") === "true",
+    core_rank: params.get("core_rank") || "",
     iu_only: params.get("iu_only") !== "false",
     institution: params.get("institution") || "",
     sort_by: params.get("sort_by") || "published_at",
@@ -64,6 +66,7 @@ function filtersToParams(f: FiltersType): string {
   if (f.quartile) sp.set("quartile", f.quartile);
   if (f.scopus_only) sp.set("scopus_only", "true");
   if (f.white_list_only) sp.set("white_list_only", "true");
+  if (f.core_rank) sp.set("core_rank", f.core_rank);
   if (!f.iu_only) sp.set("iu_only", "false");
   if (f.institution) sp.set("institution", f.institution);
   if (f.sort_by && f.sort_by !== "published_at") sp.set("sort_by", f.sort_by);
@@ -123,6 +126,7 @@ function HomeContent() {
           topic: f.topic || undefined,
           scopus_only: f.scopus_only || undefined,
           white_list_only: f.white_list_only || undefined,
+          core_rank: f.core_rank || undefined,
           sort_by: f.sort_by || undefined,
           sort_order: f.sort_order || undefined,
         });

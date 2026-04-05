@@ -176,6 +176,8 @@ function HomeContent() {
         search: f.search || undefined,
         article_type: f.article_type || undefined,
         scopus_only: f.scopus_only || undefined,
+        white_list_only: f.white_list_only || undefined,
+        core_rank: f.core_rank || undefined,
       });
       setStats(data);
     } catch {

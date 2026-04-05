@@ -137,7 +137,8 @@ class ArticleRepository:
         if scopus_only:
             from app.utils.scopus import get_scopus_issns
             scopus_issns = list(get_scopus_issns())
-            conditions.append(Article.issn == func.any_(func.cast(scopus_issns, ARRAY(String))))
+            issn_cond = Article.issn == func.any_(func.cast(scopus_issns, ARRAY(String)))
+            conditions.append((Article.in_scopus == True) | issn_cond)  # noqa: E712
         if search:
             like_pat = f"%{search}%"
             conditions.append(
@@ -361,6 +362,7 @@ class ArticleRepository:
                 func.count(Article.id).label("article_count"),
                 func.max(Article.quartile).label("quartile"),
                 func.max(Article.white_list_level).label("white_list_level"),
+                func.bool_or(Article.in_scopus).label("has_scopus_flag"),
             )
             .where(Article.journal_name.is_not(None))
             .group_by(Article.journal_name, Article.issn)
@@ -383,7 +385,7 @@ class ArticleRepository:
                 article_count=r.article_count,
                 quartile=r.quartile,
                 white_list_level=r.white_list_level,
-                in_scopus=r.issn in scopus_issns if r.issn else False,
+                in_scopus=r.has_scopus_flag or (r.issn in scopus_issns if r.issn else False),
                 in_white_list=r.white_list_level is not None,
             )
             for r in rows
@@ -555,7 +557,8 @@ class ArticleRepository:
         if filters.scopus_only:
             from app.utils.scopus import get_scopus_issns
             scopus_issns = list(get_scopus_issns())
-            cond = Article.issn == func.any_(func.cast(scopus_issns, ARRAY(String)))
+            issn_cond = Article.issn == func.any_(func.cast(scopus_issns, ARRAY(String)))
+            cond = (Article.in_scopus == True) | issn_cond  # noqa: E712
             query = query.where(cond)
             count_query = count_query.where(cond)
 

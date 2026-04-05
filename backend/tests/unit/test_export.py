@@ -27,6 +27,7 @@ def _mock_article(**overrides):
         topics=["AI", "Machine Learning"],
         white_list_level=1,
         core_rank=None,
+        in_scopus=False,
     )
     defaults.update(overrides)
     article = MagicMock()

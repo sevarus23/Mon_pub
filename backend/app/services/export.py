@@ -19,6 +19,7 @@ COLUMNS = [
     ("Квартиль", "quartile"),
     ("Белый список МОН", "white_list_level"),
     ("CORE Rank", "core_rank"),
+    ("В Scopus", "in_scopus"),
     ("Издатель", "publisher"),
     ("Цитирования", "cited_by_count"),
     ("Язык", "language"),
@@ -31,6 +32,8 @@ def _cell_value(article: Article, field: str):
     val = getattr(article, field, None)
     if val is None:
         return ""
+    if isinstance(val, bool):
+        return "Да" if val else "Нет"
     if isinstance(val, date):
         return val.isoformat()
     if isinstance(val, list):

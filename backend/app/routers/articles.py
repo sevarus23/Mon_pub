@@ -1,7 +1,7 @@
 import asyncio
 from datetime import date
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,7 @@ from app.schemas.article import (
     ConferenceInfo,
     PaginatedArticles,
     ParseResponse,
+    ScopusImportResponse,
     SortBy,
     SortOrder,
     SourceInfo,
@@ -288,3 +289,21 @@ async def trigger_update_core_ranks(
     from app.services.core_ranks import update_core_ranks
     updated = await update_core_ranks(session)
     return ParseResponse(message=f"CORE ranks updated: {updated} articles")
+
+
+@router.post("/upload-scopus", response_model=ScopusImportResponse)
+async def upload_scopus_file(
+    file: UploadFile,
+    session: AsyncSession = Depends(get_session),
+):
+    """Upload a Scopus export (CSV or XLSX) to mark matching articles as in_scopus."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    if not (file.filename.endswith(".xlsx") or file.filename.endswith(".csv")):
+        raise HTTPException(status_code=400, detail="Only .xlsx and .csv files are supported")
+
+    from app.services.scopus_import import mark_scopus_from_file
+
+    content = await file.read()
+    result = await mark_scopus_from_file(session, content, file.filename)
+    return ScopusImportResponse(**result)

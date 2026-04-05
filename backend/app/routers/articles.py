@@ -229,6 +229,8 @@ async def get_stats(
     year: int | None = None,
     search: str | None = None,
     scopus_only: bool = False,
+    white_list_only: bool = False,
+    core_rank: str | None = None,
 ):
     return await repo.get_stats(
         quartile=quartile,
@@ -237,6 +239,8 @@ async def get_stats(
         year=year,
         search=search,
         scopus_only=scopus_only,
+        white_list_only=white_list_only,
+        core_rank=core_rank,
     )
 
 

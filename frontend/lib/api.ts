@@ -49,6 +49,8 @@ export async function getStats(params?: {
   year?: number;
   search?: string;
   scopus_only?: boolean;
+  white_list_only?: boolean;
+  core_rank?: string;
 }): Promise<Stats> {
   const query = params ? buildQuery(params) : "";
   return fetchJSON<Stats>(`${BASE_URL}/api/articles/stats${query}`);

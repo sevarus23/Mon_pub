@@ -123,6 +123,8 @@ class ArticleRepository:
         year: int | None = None,
         search: str | None = None,
         scopus_only: bool = False,
+        white_list_only: bool = False,
+        core_rank: str | None = None,
     ) -> StatsOut:
         # Build optional WHERE conditions
         conditions = []
@@ -139,6 +141,10 @@ class ArticleRepository:
             scopus_issns = list(get_scopus_issns())
             issn_cond = Article.issn == func.any_(func.cast(scopus_issns, ARRAY(String)))
             conditions.append((Article.in_scopus == True) | issn_cond)  # noqa: E712
+        if white_list_only:
+            conditions.append(Article.white_list_level.is_not(None))
+        if core_rank:
+            conditions.append(Article.core_rank == core_rank)
         if search:
             like_pat = f"%{search}%"
             conditions.append(

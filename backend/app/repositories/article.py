@@ -317,10 +317,17 @@ class ArticleRepository:
 
     async def get_topics(self, search: str | None = None) -> list[str]:
         topic_expr = func.unnest(Article.topics).label("topic")
-        subq = select(topic_expr).where(Article.topics != "{}").subquery()
+        subq = (
+            select(topic_expr)
+            .where(func.array_length(Article.topics, 1) > 0)
+            .subquery()
+        )
         col = subq.c.topic
 
         if search:
+            await self._session.execute(
+                text(f"SET pg_trgm.similarity_threshold = {SIMILARITY_THRESHOLD}")
+            )
             ws = func.word_similarity(search, col).label("ws")
             query = (
                 select(col, ws)
@@ -460,7 +467,12 @@ class ArticleRepository:
             count_query = count_query.where(Article.type == filters.article_type)
 
         if filters.topic:
-            cond = Article.topics.any(filters.topic)
+            # Search in topics array OR fall back to FTS on title
+            topic_in_array = Article.topics.any(filters.topic)
+            fts_fallback = Article.search_vector.op("@@")(
+                func.plainto_tsquery("english", filters.topic)
+            )
+            cond = topic_in_array | fts_fallback
             query = query.where(cond)
             count_query = count_query.where(cond)
 

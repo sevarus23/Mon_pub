@@ -200,38 +200,23 @@ function HomeContent() {
         onReset={handleReset}
       />
       {/* Tabs */}
-      <div className="max-w-[1280px] mx-auto px-5 pt-4">
-        <div className="flex gap-1 border-b border-surface-border">
-          <button
-            onClick={() => setActiveTab("articles")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-              activeTab === "articles"
-                ? "border-primary text-primary"
-                : "border-transparent text-text-muted hover:text-text-secondary"
-            }`}
-          >
-            Публикации
-          </button>
-          <button
-            onClick={() => setActiveTab("sources")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-              activeTab === "sources"
-                ? "border-primary text-primary"
-                : "border-transparent text-text-muted hover:text-text-secondary"
-            }`}
-          >
-            Источники
-          </button>
-          <button
-            onClick={() => setActiveTab("conferences")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-              activeTab === "conferences"
-                ? "border-primary text-primary"
-                : "border-transparent text-text-muted hover:text-text-secondary"
-            }`}
-          >
-            Конференции
-          </button>
+      <div className="bg-white border-b border-surface-border">
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="flex gap-0">
+            {(["articles", "sources", "conferences"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-5 py-3 text-sm font-medium border-b-[3px] rounded-t-lg transition-all cursor-pointer ${
+                  activeTab === tab
+                    ? "border-primary text-primary bg-primary-50 font-semibold"
+                    : "border-transparent text-text-muted hover:text-text-secondary hover:bg-surface-secondary"
+                }`}
+              >
+                {tab === "articles" ? "Публикации" : tab === "sources" ? "Источники" : "Конференции"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -244,11 +229,11 @@ function HomeContent() {
           <ConferencesTable />
         </main>
       ) : (
-      <main className="max-w-[1280px] mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+      <main className="max-w-[1280px] mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
         <div ref={listRef}>
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-5">
             <div className="flex items-center gap-3">
-              <p className="text-sm text-text-secondary">
+              <p className="text-sm text-text-secondary font-medium">
                 {articles
                   ? `${articles.total.toLocaleString("ru-RU")} публикаций`
                   : "Загрузка..."}
@@ -299,7 +284,7 @@ function HomeContent() {
                 </div>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <select
                 className="filter-select text-xs"
                 value={filters.sort_by}
@@ -317,6 +302,18 @@ function HomeContent() {
                 <option value="desc">По убыванию</option>
                 <option value="asc">По возрастанию</option>
               </select>
+              <span className="text-xs text-text-muted mx-1">|</span>
+              <select
+                className="filter-select text-xs"
+                value={filters.per_page}
+                onChange={(e) => setFilters((prev) => ({ ...prev, per_page: Number(e.target.value), page: 1 }))}
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="text-xs text-text-muted">на стр.</span>
             </div>
           </div>
 

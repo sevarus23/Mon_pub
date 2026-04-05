@@ -5,12 +5,17 @@ import { getSourcesTable } from "@/lib/api";
 import type { SourceInfo } from "@/types";
 import { getQuartileClass } from "@/types";
 
+type SortKey = "journal_name" | "article_count" | "quartile" | "white_list_level";
+type SortDir = "asc" | "desc";
+
 export default function SourcesTable() {
   const [sources, setSources] = useState<SourceInfo[]>([]);
   const [filtered, setFiltered] = useState<SourceInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showOnly, setShowOnly] = useState<"all" | "scopus" | "white_list">("all");
+  const [sortKey, setSortKey] = useState<SortKey>("article_count");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -24,8 +29,23 @@ export default function SourcesTable() {
       .finally(() => setLoading(false));
   }, []);
 
+  const sortData = useCallback(
+    (data: SourceInfo[], key: SortKey, dir: SortDir) => {
+      return [...data].sort((a, b) => {
+        const av = a[key] ?? "";
+        const bv = b[key] ?? "";
+        if (typeof av === "number" && typeof bv === "number") {
+          return dir === "asc" ? av - bv : bv - av;
+        }
+        const cmp = String(av).localeCompare(String(bv));
+        return dir === "asc" ? cmp : -cmp;
+      });
+    },
+    []
+  );
+
   const applyFilters = useCallback(
-    (s: string, filter: "all" | "scopus" | "white_list") => {
+    (s: string, filter: "all" | "scopus" | "white_list", sk: SortKey, sd: SortDir) => {
       let result = sources;
       if (s.trim()) {
         const lower = s.toLowerCase();
@@ -40,21 +60,31 @@ export default function SourcesTable() {
       } else if (filter === "white_list") {
         result = result.filter((src) => src.in_white_list);
       }
-      setFiltered(result);
+      setFiltered(sortData(result, sk, sd));
     },
-    [sources]
+    [sources, sortData]
   );
 
   const handleSearch = (value: string) => {
     setSearch(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => applyFilters(value, showOnly), 300);
+    debounceRef.current = setTimeout(() => applyFilters(value, showOnly, sortKey, sortDir), 300);
   };
 
   const handleFilter = (filter: "all" | "scopus" | "white_list") => {
     setShowOnly(filter);
-    applyFilters(search, filter);
+    applyFilters(search, filter, sortKey, sortDir);
   };
+
+  const handleSort = (key: SortKey) => {
+    const newDir = sortKey === key && sortDir === "desc" ? "asc" : "desc";
+    setSortKey(key);
+    setSortDir(newDir);
+    applyFilters(search, showOnly, key, newDir);
+  };
+
+  const sortArrow = (key: SortKey) =>
+    sortKey === key ? (sortDir === "asc" ? " \u25B2" : " \u25BC") : " \u25B2\u25BC";
 
   const scopusCount = sources.filter((s) => s.in_scopus).length;
   const whiteListCount = sources.filter((s) => s.in_white_list).length;
@@ -69,16 +99,22 @@ export default function SourcesTable() {
 
   return (
     <div>
-      {/* Header stats */}
-      <div className="flex flex-wrap gap-4 mb-4">
-        <div className="text-sm text-text-secondary">
-          Всего источников: <span className="font-semibold text-text">{sources.length}</span>
+      {/* Stats cards */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        <div className="bg-white rounded-[10px] shadow-card flex items-center gap-3 py-3 px-4">
+          <div className="text-2xl font-bold text-primary">{sources.length}</div>
+          <div className="text-xs text-text-muted">{"Всего\nисточников"}</div>
         </div>
-        <div className="text-sm text-text-secondary">
-          В Scopus: <span className="font-semibold text-primary">{scopusCount}</span>
+        <div className="bg-white rounded-[10px] shadow-card flex items-center gap-3 py-3 px-4">
+          <div className="text-2xl font-bold text-primary">{scopusCount}</div>
+          <div className="text-xs text-text-muted">В Scopus</div>
         </div>
-        <div className="text-sm text-text-secondary">
-          В Белом списке МОН: <span className="font-semibold text-emerald-600">{whiteListCount}</span>
+        <div className="bg-white rounded-[10px] shadow-card flex items-center gap-3 py-3 px-4">
+          <div className="text-2xl font-bold text-emerald-600">{whiteListCount}</div>
+          <div className="text-xs text-text-muted">{"В Белом списке\nМОН РФ"}</div>
+        </div>
+        <div className="ml-auto self-center text-[0.65rem] text-text-muted italic">
+          Scopus: обновлён 01.2024 &nbsp;|&nbsp; Белый список МОН: обновлён 05.04.2026
         </div>
       </div>
 
@@ -112,53 +148,61 @@ export default function SourcesTable() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-surface-border">
+      <div className="overflow-x-auto rounded-lg border border-surface-border shadow-sm">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 text-left text-xs text-text-muted uppercase tracking-wide">
-              <th className="px-4 py-3 font-medium">Издание</th>
-              <th className="px-4 py-3 font-medium w-[100px]">ISSN</th>
-              <th className="px-4 py-3 font-medium w-[70px] text-center">Статей</th>
-              <th className="px-4 py-3 font-medium w-[70px] text-center">Квартиль</th>
-              <th className="px-4 py-3 font-medium w-[70px] text-center">Scopus</th>
-              <th className="px-4 py-3 font-medium w-[90px] text-center">Белый список</th>
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-gray-50 text-[0.65rem] text-text-muted uppercase tracking-wider">
+              <th className="px-4 py-3 font-semibold text-left cursor-pointer select-none hover:text-primary" onClick={() => handleSort("journal_name")}>
+                Издание<span className="text-[0.55rem] ml-1">{sortArrow("journal_name")}</span>
+              </th>
+              <th className="px-4 py-3 font-semibold text-center w-[100px]">ISSN</th>
+              <th className="px-4 py-3 font-semibold text-center w-[80px] cursor-pointer select-none hover:text-primary" onClick={() => handleSort("article_count")}>
+                Статей<span className="text-[0.55rem] ml-1">{sortArrow("article_count")}</span>
+              </th>
+              <th className="px-4 py-3 font-semibold text-center w-[90px] cursor-pointer select-none hover:text-primary" onClick={() => handleSort("quartile")}>
+                Квартиль<span className="text-[0.55rem] ml-1">{sortArrow("quartile")}</span>
+              </th>
+              <th className="px-4 py-3 font-semibold text-center w-[80px]">Scopus</th>
+              <th className="px-4 py-3 font-semibold text-center w-[110px] cursor-pointer select-none hover:text-primary" onClick={() => handleSort("white_list_level")}>
+                Белый список<span className="text-[0.55rem] ml-1">{sortArrow("white_list_level")}</span>
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-surface-border">
+          <tbody>
             {filtered.map((src, i) => (
-              <tr key={`${src.journal_name}-${src.issn}-${i}`} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-2.5 font-medium text-text">
+              <tr key={`${src.journal_name}-${src.issn}-${i}`} className={`hover:bg-primary-50 transition-colors ${i % 2 === 1 ? "bg-gray-50/50" : ""}`}>
+                <td className="px-4 py-3 font-medium text-text text-left">
                   {src.journal_name}
                 </td>
-                <td className="px-4 py-2.5 text-text-muted font-mono text-xs">
-                  {src.issn || "—"}
+                <td className="px-4 py-3 text-text-muted font-mono text-xs text-center">
+                  {src.issn || "\u2014"}
                 </td>
-                <td className="px-4 py-2.5 text-center font-semibold">
+                <td className="px-4 py-3 text-center font-semibold">
                   {src.article_count}
                 </td>
-                <td className="px-4 py-2.5 text-center">
+                <td className="px-4 py-3 text-center">
                   {src.quartile ? (
                     <span className={`inline-block py-0.5 px-2 rounded text-xs font-bold text-white ${getQuartileClass(src.quartile)}`}>
                       {src.quartile}
                     </span>
                   ) : (
-                    <span className="text-text-muted">—</span>
+                    <span className="text-text-muted">\u2014</span>
                   )}
                 </td>
-                <td className="px-4 py-2.5 text-center">
+                <td className="px-4 py-3 text-center">
                   {src.in_scopus ? (
                     <span className="text-primary font-bold">&#10003;</span>
                   ) : (
-                    <span className="text-text-muted">—</span>
+                    <span className="text-text-muted">\u2014</span>
                   )}
                 </td>
-                <td className="px-4 py-2.5 text-center">
+                <td className="px-4 py-3 text-center">
                   {src.in_white_list ? (
                     <span className="inline-block py-0.5 px-2 rounded text-xs font-bold bg-emerald-600 text-white">
-                      {`БС-${src.white_list_level}`}
+                      {`\u0411\u0421-${src.white_list_level}`}
                     </span>
                   ) : (
-                    <span className="text-text-muted">—</span>
+                    <span className="text-text-muted">\u2014</span>
                   )}
                 </td>
               </tr>

@@ -12,12 +12,19 @@ const CORE_COLORS: Record<string, string> = {
   C: "bg-violet-300 text-violet-900",
 };
 
+type SortKey = "journal_name" | "article_count" | "core_rank" | "quartile" | "white_list_level";
+type SortDir = "asc" | "desc";
+
+const RANK_ORDER: Record<string, number> = { "A*": 1, A: 2, B: 3, C: 4 };
+
 export default function ConferencesTable() {
   const [conferences, setConferences] = useState<ConferenceInfo[]>([]);
   const [filtered, setFiltered] = useState<ConferenceInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [rankFilter, setRankFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("article_count");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -31,8 +38,28 @@ export default function ConferencesTable() {
       .finally(() => setLoading(false));
   }, []);
 
+  const sortData = useCallback(
+    (data: ConferenceInfo[], key: SortKey, dir: SortDir) => {
+      return [...data].sort((a, b) => {
+        if (key === "core_rank") {
+          const av = RANK_ORDER[a.core_rank || ""] ?? 99;
+          const bv = RANK_ORDER[b.core_rank || ""] ?? 99;
+          return dir === "asc" ? av - bv : bv - av;
+        }
+        const av = a[key] ?? "";
+        const bv = b[key] ?? "";
+        if (typeof av === "number" && typeof bv === "number") {
+          return dir === "asc" ? av - bv : bv - av;
+        }
+        const cmp = String(av).localeCompare(String(bv));
+        return dir === "asc" ? cmp : -cmp;
+      });
+    },
+    []
+  );
+
   const applyFilters = useCallback(
-    (s: string, rank: string) => {
+    (s: string, rank: string, sk: SortKey, sd: SortDir) => {
       let result = conferences;
       if (s.trim()) {
         const lower = s.toLowerCase();
@@ -43,21 +70,31 @@ export default function ConferencesTable() {
       if (rank !== "all") {
         result = result.filter((c) => c.core_rank === rank);
       }
-      setFiltered(result);
+      setFiltered(sortData(result, sk, sd));
     },
-    [conferences]
+    [conferences, sortData]
   );
 
   const handleSearch = (value: string) => {
     setSearch(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => applyFilters(value, rankFilter), 300);
+    debounceRef.current = setTimeout(() => applyFilters(value, rankFilter, sortKey, sortDir), 300);
   };
 
   const handleRankFilter = (rank: string) => {
     setRankFilter(rank);
-    applyFilters(search, rank);
+    applyFilters(search, rank, sortKey, sortDir);
   };
+
+  const handleSort = (key: SortKey) => {
+    const newDir = sortKey === key && sortDir === "desc" ? "asc" : "desc";
+    setSortKey(key);
+    setSortDir(newDir);
+    applyFilters(search, rankFilter, key, newDir);
+  };
+
+  const sortArrow = (key: SortKey) =>
+    sortKey === key ? (sortDir === "asc" ? " \u25B2" : " \u25BC") : " \u25B2\u25BC";
 
   const rankCounts: Record<string, number> = {};
   for (const c of conferences) {
@@ -75,16 +112,21 @@ export default function ConferencesTable() {
 
   return (
     <div>
-      {/* Stats */}
-      <div className="flex flex-wrap gap-4 mb-4">
-        <div className="text-sm text-text-secondary">
-          Всего конференций: <span className="font-semibold text-text">{conferences.length}</span>
+      {/* Stats cards (same style as Sources) */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        <div className="bg-white rounded-[10px] shadow-card flex items-center gap-3 py-3 px-4">
+          <div className="text-2xl font-bold text-primary">{conferences.length}</div>
+          <div className="text-xs text-text-muted">{"Всего\nконференций"}</div>
         </div>
         {["A*", "A", "B", "C"].map((r) => (
-          <div key={r} className="text-sm text-text-secondary">
-            {r}: <span className="font-semibold text-violet-600">{rankCounts[r] || 0}</span>
+          <div key={r} className="bg-white rounded-[10px] shadow-card flex items-center gap-3 py-3 px-4">
+            <div className="text-2xl font-bold text-primary">{rankCounts[r] || 0}</div>
+            <div className="text-xs text-text-muted">{r}</div>
           </div>
         ))}
+        <div className="ml-auto self-center text-[0.65rem] text-text-muted italic">
+          CORE Rankings: ICORE2026 &nbsp;|&nbsp; обновлён 05.04.2026
+        </div>
       </div>
 
       {/* Search + rank filter */}
@@ -103,8 +145,8 @@ export default function ConferencesTable() {
               onClick={() => handleRankFilter(r)}
               className={`px-3 py-1.5 text-xs rounded-md border transition-colors cursor-pointer ${
                 rankFilter === r
-                  ? "bg-violet-600 text-white border-violet-600"
-                  : "bg-white text-text-secondary border-surface-border hover:border-violet-400 hover:text-violet-600"
+                  ? "bg-primary text-white border-primary"
+                  : "bg-white text-text-secondary border-surface-border hover:border-primary hover:text-primary"
               }`}
             >
               {r === "all" ? "Все" : r}
@@ -117,51 +159,61 @@ export default function ConferencesTable() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-surface-border">
+      <div className="overflow-x-auto rounded-lg border border-surface-border shadow-sm">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 text-left text-xs text-text-muted uppercase tracking-wide">
-              <th className="px-4 py-3 font-medium">Конференция</th>
-              <th className="px-4 py-3 font-medium w-[70px] text-center">Статей</th>
-              <th className="px-4 py-3 font-medium w-[90px] text-center">CORE Rank</th>
-              <th className="px-4 py-3 font-medium w-[70px] text-center">Квартиль</th>
-              <th className="px-4 py-3 font-medium w-[90px] text-center">Белый список</th>
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-gray-50 text-[0.65rem] text-text-muted uppercase tracking-wider">
+              <th className="px-4 py-3 font-semibold text-left cursor-pointer select-none hover:text-primary" onClick={() => handleSort("journal_name")}>
+                Конференция<span className="text-[0.55rem] ml-1">{sortArrow("journal_name")}</span>
+              </th>
+              <th className="px-4 py-3 font-semibold text-center w-[80px] cursor-pointer select-none hover:text-primary" onClick={() => handleSort("article_count")}>
+                Статей<span className="text-[0.55rem] ml-1">{sortArrow("article_count")}</span>
+              </th>
+              <th className="px-4 py-3 font-semibold text-center w-[100px] cursor-pointer select-none hover:text-primary" onClick={() => handleSort("core_rank")}>
+                CORE Rank<span className="text-[0.55rem] ml-1">{sortArrow("core_rank")}</span>
+              </th>
+              <th className="px-4 py-3 font-semibold text-center w-[90px] cursor-pointer select-none hover:text-primary" onClick={() => handleSort("quartile")}>
+                Квартиль<span className="text-[0.55rem] ml-1">{sortArrow("quartile")}</span>
+              </th>
+              <th className="px-4 py-3 font-semibold text-center w-[110px] cursor-pointer select-none hover:text-primary" onClick={() => handleSort("white_list_level")}>
+                Белый список<span className="text-[0.55rem] ml-1">{sortArrow("white_list_level")}</span>
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-surface-border">
+          <tbody>
             {filtered.map((conf, i) => (
-              <tr key={`${conf.journal_name}-${i}`} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-2.5 font-medium text-text">
+              <tr key={`${conf.journal_name}-${i}`} className={`hover:bg-primary-50 transition-colors ${i % 2 === 1 ? "bg-gray-50/50" : ""}`}>
+                <td className="px-4 py-3 font-medium text-text text-left">
                   {conf.journal_name}
                 </td>
-                <td className="px-4 py-2.5 text-center font-semibold">
+                <td className="px-4 py-3 text-center font-semibold">
                   {conf.article_count}
                 </td>
-                <td className="px-4 py-2.5 text-center">
+                <td className="px-4 py-3 text-center">
                   {conf.core_rank ? (
                     <span className={`inline-block py-0.5 px-2 rounded text-xs font-bold text-white ${CORE_COLORS[conf.core_rank] || "bg-violet-400"}`}>
                       {conf.core_rank}
                     </span>
                   ) : (
-                    <span className="text-text-muted">—</span>
+                    <span className="text-text-muted">{"\u2014"}</span>
                   )}
                 </td>
-                <td className="px-4 py-2.5 text-center">
+                <td className="px-4 py-3 text-center">
                   {conf.quartile ? (
                     <span className={`inline-block py-0.5 px-2 rounded text-xs font-bold text-white ${getQuartileClass(conf.quartile)}`}>
                       {conf.quartile}
                     </span>
                   ) : (
-                    <span className="text-text-muted">—</span>
+                    <span className="text-text-muted">{"\u2014"}</span>
                   )}
                 </td>
-                <td className="px-4 py-2.5 text-center">
+                <td className="px-4 py-3 text-center">
                   {conf.white_list_level ? (
                     <span className="inline-block py-0.5 px-2 rounded text-xs font-bold bg-emerald-600 text-white">
-                      {`БС-${conf.white_list_level}`}
+                      {`\u0411\u0421-${conf.white_list_level}`}
                     </span>
                   ) : (
-                    <span className="text-text-muted">—</span>
+                    <span className="text-text-muted">{"\u2014"}</span>
                   )}
                 </td>
               </tr>

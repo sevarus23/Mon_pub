@@ -72,8 +72,8 @@ export default function Filters({
   ].filter(Boolean).length;
 
   return (
-    <div className="bg-white border-b border-surface-border">
-      <div className="max-w-[1280px] mx-auto px-5 py-4">
+    <div className="bg-white border-b border-surface-border shadow-sm">
+      <div className="max-w-[1280px] mx-auto px-6 py-4">
         {/* Mode toggle */}
         <div className="flex items-center gap-4 mb-3">
           <label className="flex items-center gap-2 cursor-pointer select-none">

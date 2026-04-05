@@ -79,6 +79,16 @@ export default function Autocomplete({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (open && highlighted >= 0) {
+        handleSelect(options[highlighted]);
+      } else if (input.trim()) {
+        onChange(input.trim());
+        setOpen(false);
+      }
+      return;
+    }
     if (!open) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -86,9 +96,6 @@ export default function Autocomplete({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setHighlighted((h) => Math.max(h - 1, 0));
-    } else if (e.key === "Enter" && highlighted >= 0) {
-      e.preventDefault();
-      handleSelect(options[highlighted]);
     } else if (e.key === "Escape") {
       setOpen(false);
     }

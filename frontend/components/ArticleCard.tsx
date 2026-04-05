@@ -1,7 +1,7 @@
 "use client";
 
 import type { Article } from "@/types";
-import { getTypeLabel, getQuartileClass, isNewToday, formatDate } from "@/types";
+import { getTypeLabel, getQuartileClass, isNewToday, formatDate, isFutureDate } from "@/types";
 
 interface ArticleCardProps {
   article: Article;
@@ -53,7 +53,9 @@ export default function ArticleCard({ article }: ArticleCardProps) {
           </span>
         )}
 
-        <span>{formatDate(article.published_at)}</span>
+        <span className={isFutureDate(article.published_at) ? "text-amber-500" : ""} title={isFutureDate(article.published_at) ? "Дата из будущего — вероятно ошибка источника" : ""}>
+          {formatDate(article.published_at)}
+        </span>
 
         {article.quartile && (
           <span className={`inline-block py-0.5 px-2 rounded text-xs font-bold text-white ${qClass}`}>

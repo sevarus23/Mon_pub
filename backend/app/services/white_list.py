@@ -51,47 +51,19 @@ async def _fetch_level(client: httpx.AsyncClient, issn: str) -> int | None:
         return None
 
 
-async def update_white_list_levels() -> int:
-    """Update articles with white list levels from cache and API.
+async def update_white_list_levels(session=None) -> int:
+    """Update articles with white list levels from cache.
 
-    First applies levels from existing cache, then fetches uncached ISSNs
-    from the RCSI API.
+    Reads the pre-built cache file and updates articles in DB.
+    If a session is provided, uses it; otherwise creates a new one.
     """
-    # Get all unique ISSNs from DB
-    async with async_session() as session:
-        result = await session.execute(
-            select(Article.issn)
-            .where(Article.issn.is_not(None))
-            .where(Article.issn != "")
-            .distinct()
-        )
-        all_issns = [r[0] for r in result.all()]
-
-    if not all_issns:
-        logger.info("No ISSNs to check")
-        return 0
-
-    logger.info("Checking %d unique ISSNs against White List", len(all_issns))
-
     # Load cache
     cache = _load_cache()
-    logger.info("Cache has %d entries", len(cache))
+    if not cache:
+        logger.warning("White list cache is empty or not found at %s", CACHE_PATH)
+        return 0
 
-    # Try to fetch uncached ISSNs from API
-    issns_to_fetch = [issn for issn in all_issns if issn not in cache]
-    if issns_to_fetch:
-        logger.info("Fetching %d new ISSNs from RCSI API", len(issns_to_fetch))
-        try:
-            async with httpx.AsyncClient(verify=True) as client:
-                for i, issn in enumerate(issns_to_fetch):
-                    level = await _fetch_level(client, issn)
-                    cache[issn] = level
-                    if (i + 1) % 50 == 0:
-                        logger.info("Fetched %d/%d ISSNs", i + 1, len(issns_to_fetch))
-                    await asyncio.sleep(0.15)
-            _save_cache(cache)
-        except Exception:
-            logger.exception("API fetch failed, using cache only")
+    logger.info("Loaded cache with %d entries", len(cache))
 
     # Build ISSN -> level mapping (only entries that have a level)
     issn_levels: dict[str, int] = {k: v for k, v in cache.items() if v is not None}
@@ -99,7 +71,12 @@ async def update_white_list_levels() -> int:
 
     # Update articles in DB
     updated = 0
-    async with async_session() as session:
+    own_session = session is None
+    if own_session:
+        session = async_session()
+        await session.__aenter__()
+
+    try:
         # Set level for matching ISSNs
         for issn, level in issn_levels.items():
             result = await session.execute(
@@ -113,9 +90,8 @@ async def update_white_list_levels() -> int:
             )
             updated += result.rowcount
 
-        # Clear level for ISSNs not in white list
-        known_issns = set(cache.keys())
-        not_in_list_issns = [issn for issn in all_issns if issn in known_issns and cache.get(issn) is None]
+        # Clear level for ISSNs not in cache white list
+        not_in_list_issns = [k for k, v in cache.items() if v is None]
         if not_in_list_issns:
             result = await session.execute(
                 update(Article)
@@ -126,6 +102,9 @@ async def update_white_list_levels() -> int:
             updated += result.rowcount
 
         await session.commit()
+    finally:
+        if own_session:
+            await session.__aexit__(None, None, None)
 
     logger.info("White list update complete: %d articles updated", updated)
     return updated

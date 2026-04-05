@@ -9,6 +9,9 @@ interface SidebarProps {
   stats: Stats | null;
   onQuartileClick?: (q: string) => void;
   globalMode?: boolean;
+  scopus_only?: boolean;
+  white_list_only?: boolean;
+  core_rank?: string;
 }
 
 const Q_COLORS: Record<string, string> = {
@@ -18,16 +21,23 @@ const Q_COLORS: Record<string, string> = {
   Q4: "text-quartile-q4 border-quartile-q4",
 };
 
-export default function Sidebar({ stats, onQuartileClick, globalMode }: SidebarProps) {
+export default function Sidebar({ stats, onQuartileClick, globalMode, scopus_only, white_list_only, core_rank }: SidebarProps) {
   const [qCounts, setQCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     for (const q of ["Q1", "Q2", "Q3", "Q4"]) {
-      getArticles({ quartile: q, per_page: 1, page: 1 })
+      getArticles({
+        quartile: q,
+        per_page: 1,
+        page: 1,
+        scopus_only: scopus_only || undefined,
+        white_list_only: white_list_only || undefined,
+        core_rank: core_rank || undefined,
+      })
         .then((res) => setQCounts((prev) => ({ ...prev, [q]: res.total })))
         .catch(() => {});
     }
-  }, []);
+  }, [scopus_only, white_list_only, core_rank]);
 
   if (globalMode) {
     return (

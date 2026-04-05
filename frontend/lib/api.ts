@@ -31,6 +31,7 @@ export async function getArticles(params: {
   date_to?: string;
   quartile?: string;
   article_type?: string;
+  topic?: string;
   scopus_only?: boolean;
   sort_by?: string;
   sort_order?: string;
@@ -70,6 +71,28 @@ export async function getQuartiles(): Promise<string[]> {
   return fetchJSON<string[]>(`${BASE_URL}/api/articles/quartiles`);
 }
 
+export async function getTopics(search?: string): Promise<string[]> {
+  const query = search ? `?search=${encodeURIComponent(search)}` : "";
+  return fetchJSON<string[]>(`${BASE_URL}/api/articles/topics${query}`);
+}
+
+export function getExportUrl(params: {
+  search?: string;
+  journal_name?: string;
+  author?: string;
+  date_from?: string;
+  date_to?: string;
+  quartile?: string;
+  article_type?: string;
+  topic?: string;
+  scopus_only?: boolean;
+  sort_by?: string;
+  sort_order?: string;
+}, format: "xlsx" | "csv" = "xlsx"): string {
+  const query = buildQuery({ ...params, format });
+  return `${BASE_URL}/api/articles/export${query}`;
+}
+
 export async function searchOpenAlex(params: {
   page?: number;
   per_page?: number;
@@ -78,6 +101,7 @@ export async function searchOpenAlex(params: {
   date_to?: string;
   sort_by?: string;
   sort_order?: string;
+  institution?: string;
 }): Promise<ArticlesResponse> {
   const query = buildQuery(params);
   return fetchJSON<ArticlesResponse>(`${BASE_URL}/api/articles/openalex-search${query}`);

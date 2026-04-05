@@ -52,3 +52,55 @@ describe("buildQuery", () => {
     expect(buildQuery({ scopus_only: true, page: 1 })).toContain("scopus_only=true");
   });
 });
+
+// Test getExportUrl by replicating its logic (same approach as buildQuery)
+function getExportUrl(
+  params: Record<string, string | number | boolean | undefined>,
+  format: "xlsx" | "csv" = "xlsx"
+): string {
+  const BASE_URL = "/mon_pub";
+  const query = buildQuery({ ...params, format });
+  return `${BASE_URL}/api/articles/export${query}`;
+}
+
+describe("getExportUrl", () => {
+  test("generates xlsx url by default", () => {
+    const url = getExportUrl({}, "xlsx");
+    expect(url).toContain("/api/articles/export");
+    expect(url).toContain("format=xlsx");
+  });
+
+  test("generates csv url", () => {
+    const url = getExportUrl({}, "csv");
+    expect(url).toContain("format=csv");
+  });
+
+  test("includes search params", () => {
+    const url = getExportUrl({ search: "AI", quartile: "Q1" }, "xlsx");
+    expect(url).toContain("search=AI");
+    expect(url).toContain("quartile=Q1");
+    expect(url).toContain("format=xlsx");
+  });
+
+  test("excludes undefined params", () => {
+    const url = getExportUrl({ search: undefined, quartile: "Q2" }, "xlsx");
+    expect(url).not.toContain("search");
+    expect(url).toContain("quartile=Q2");
+  });
+
+  test("includes topic param", () => {
+    const url = getExportUrl({ topic: "Machine Learning" }, "csv");
+    expect(url).toContain("topic=Machine+Learning");
+    expect(url).toContain("format=csv");
+  });
+
+  test("includes scopus_only when true", () => {
+    const url = getExportUrl({ scopus_only: true }, "xlsx");
+    expect(url).toContain("scopus_only=true");
+  });
+
+  test("excludes scopus_only when false", () => {
+    const url = getExportUrl({ scopus_only: false }, "xlsx");
+    expect(url).not.toContain("scopus_only");
+  });
+});

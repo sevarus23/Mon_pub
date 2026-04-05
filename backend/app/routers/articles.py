@@ -2,6 +2,7 @@ import asyncio
 from datetime import date
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -15,6 +16,7 @@ from app.schemas.article import (
     SortOrder,
     StatsOut,
 )
+from app.services.export import export_csv, export_xlsx
 from app.services.scheduler import run_parse
 from app.services.sjr import update_quartiles_from_csv
 
@@ -42,6 +44,7 @@ async def list_articles(
     year: int | None = None,
     quartile: str | None = None,
     article_type: str | None = None,
+    topic: str | None = None,
     scopus_only: bool = False,
     sort_by: SortBy = SortBy.published_at,
     sort_order: SortOrder = SortOrder.desc,
@@ -59,6 +62,7 @@ async def list_articles(
         year=year,
         quartile=quartile,
         article_type=article_type,
+        topic=topic,
         scopus_only=scopus_only,
         sort_by=sort_by,
         sort_order=sort_order,
@@ -97,6 +101,71 @@ async def get_quartiles(repo: ArticleRepository = Depends(_get_repo)):
     return await repo.get_quartiles()
 
 
+@router.get("/topics", response_model=list[str])
+async def get_topics(
+    search: str | None = None,
+    repo: ArticleRepository = Depends(_get_repo),
+):
+    return await repo.get_topics(search=search)
+
+
+@router.get("/export")
+async def export_articles(
+    repo: ArticleRepository = Depends(_get_repo),
+    format: str = Query("xlsx", pattern="^(xlsx|csv)$"),
+    search: str | None = None,
+    journal_name: str | None = None,
+    issn: str | None = None,
+    author: str | None = None,
+    title: str | None = None,
+    doi: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    source: str | None = None,
+    year: int | None = None,
+    quartile: str | None = None,
+    article_type: str | None = None,
+    topic: str | None = None,
+    scopus_only: bool = False,
+    sort_by: SortBy = SortBy.published_at,
+    sort_order: SortOrder = SortOrder.desc,
+):
+    filters = ArticleFilters(
+        search=search,
+        journal_name=journal_name,
+        issn=issn,
+        author=author,
+        title=title,
+        doi=doi,
+        date_from=date_from,
+        date_to=date_to,
+        source=source,
+        year=year,
+        quartile=quartile,
+        article_type=article_type,
+        topic=topic,
+        scopus_only=scopus_only,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+    articles = await repo.get_all_filtered(filters)
+
+    if format == "csv":
+        buf = export_csv(articles)
+        return StreamingResponse(
+            iter([buf.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=articles.csv"},
+        )
+
+    buf = export_xlsx(articles)
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=articles.xlsx"},
+    )
+
+
 @router.get("/openalex-search")
 async def openalex_search(
     search: str = "",
@@ -106,6 +175,7 @@ async def openalex_search(
     date_to: date | None = None,
     sort_by: SortBy = SortBy.published_at,
     sort_order: SortOrder = SortOrder.desc,
+    institution: str | None = None,
 ):
     from app.services.openalex import search_openalex
     try:
@@ -117,6 +187,7 @@ async def openalex_search(
             date_to=date_to,
             sort_by=sort_by.value,
             sort_order=sort_order.value,
+            institution=institution,
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"OpenAlex API error: {e}")
@@ -166,3 +237,10 @@ async def trigger_quartile_update():
 async def trigger_normalize_types(repo: ArticleRepository = Depends(_get_repo)):
     updated = await repo.normalize_all_types()
     return ParseResponse(message=f"Normalized type for {updated} articles")
+
+
+@router.post("/backfill-topics", response_model=ParseResponse)
+async def trigger_backfill_topics(background_tasks: BackgroundTasks):
+    from app.services.topics import backfill_topics
+    background_tasks.add_task(asyncio.to_thread, lambda: asyncio.run(backfill_topics()))
+    return ParseResponse(message="Topics backfill started in background")

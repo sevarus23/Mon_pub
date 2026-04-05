@@ -31,6 +31,7 @@ def _make_article(**overrides) -> ArticleOut:
         cited_by_count=10,
         language="en",
         source="crossref",
+        topics=["AI", "Machine Learning"],
         created_at=datetime(2024, 1, 1),
         updated_at=datetime(2024, 1, 1),
     )
@@ -120,7 +121,7 @@ class TestGetArticle:
             doi="10.1/x", published_at=date(2024, 1, 1),
             journal_name="J", issn="1234-5678", type="Articles",
             quartile="Q1", publisher="P", cited_by_count=5,
-            language="en", source="crossref",
+            language="en", source="crossref", topics=["AI"],
             created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
         ).items():
             setattr(mock_article, field, val)
@@ -195,3 +196,123 @@ class TestActionEndpoints:
         resp = await client.post("/api/articles/normalize-types")
         assert resp.status_code == 200
         assert "message" in resp.json()
+
+    async def test_backfill_topics_200(self, client, mock_repo):
+        from unittest.mock import patch, AsyncMock
+        with patch("app.services.topics.backfill_topics", new_callable=AsyncMock):
+            resp = await client.post("/api/articles/backfill-topics")
+        assert resp.status_code == 200
+        assert "message" in resp.json()
+
+
+class TestTopicsEndpoint:
+    """Tests for GET /api/articles/topics."""
+
+    async def test_topics_200(self, client, mock_repo):
+        mock_repo.get_topics.return_value = ["AI", "Machine Learning", "NLP"]
+        resp = await client.get("/api/articles/topics")
+        assert resp.status_code == 200
+        assert resp.json() == ["AI", "Machine Learning", "NLP"]
+
+    async def test_topics_with_search(self, client, mock_repo):
+        mock_repo.get_topics.return_value = ["Artificial Intelligence"]
+        resp = await client.get("/api/articles/topics?search=artif")
+        assert resp.status_code == 200
+
+    async def test_topics_empty(self, client, mock_repo):
+        mock_repo.get_topics.return_value = []
+        resp = await client.get("/api/articles/topics")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+
+class TestExportEndpoint:
+    """Tests for GET /api/articles/export."""
+
+    async def test_export_xlsx_200(self, client, mock_repo):
+        from app.models.article import Article as ArticleModel
+        from unittest.mock import MagicMock
+
+        mock_article = MagicMock(spec=ArticleModel)
+        for field, val in dict(
+            id=1, num_id="cr_abc", title="Test", authors="A",
+            doi="10.1/x", published_at=date(2024, 1, 1),
+            journal_name="J", issn="1234-5678", type="Articles",
+            quartile="Q1", publisher="P", cited_by_count=5,
+            language="en", source="crossref", topics=["AI"],
+            created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
+        ).items():
+            setattr(mock_article, field, val)
+
+        mock_repo.get_all_filtered.return_value = [mock_article]
+        resp = await client.get("/api/articles/export?format=xlsx")
+        assert resp.status_code == 200
+        assert "spreadsheetml" in resp.headers["content-type"]
+
+    async def test_export_csv_200(self, client, mock_repo):
+        from app.models.article import Article as ArticleModel
+        from unittest.mock import MagicMock
+
+        mock_article = MagicMock(spec=ArticleModel)
+        for field, val in dict(
+            id=1, num_id="cr_abc", title="Test", authors="A",
+            doi="10.1/x", published_at=date(2024, 1, 1),
+            journal_name="J", issn="1234-5678", type="Articles",
+            quartile="Q1", publisher="P", cited_by_count=5,
+            language="en", source="crossref", topics=[],
+            created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
+        ).items():
+            setattr(mock_article, field, val)
+
+        mock_repo.get_all_filtered.return_value = [mock_article]
+        resp = await client.get("/api/articles/export?format=csv")
+        assert resp.status_code == 200
+        assert "text/csv" in resp.headers["content-type"]
+
+    async def test_export_invalid_format_422(self, client, mock_repo):
+        resp = await client.get("/api/articles/export?format=pdf")
+        assert resp.status_code == 422
+
+    async def test_export_with_topic_filter(self, client, mock_repo):
+        mock_repo.get_all_filtered.return_value = []
+        resp = await client.get("/api/articles/export?topic=AI")
+        assert resp.status_code == 200
+
+
+class TestListArticlesWithTopic:
+    """Tests for topic filter in GET /api/articles."""
+
+    async def test_topic_filter_200(self, client, mock_repo):
+        mock_repo.get_filtered.return_value = _make_paginated(items=[], total=0, pages=0)
+        resp = await client.get("/api/articles?topic=AI")
+        assert resp.status_code == 200
+
+    async def test_articles_include_topics_field(self, client, mock_repo):
+        mock_repo.get_filtered.return_value = _make_paginated()
+        resp = await client.get("/api/articles")
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        assert "topics" in items[0]
+        assert items[0]["topics"] == ["AI", "Machine Learning"]
+
+
+class TestOpenAlexSearchWithInstitution:
+    """Tests for institution parameter in GET /api/articles/openalex-search."""
+
+    async def test_institution_param_200(self, client, mock_repo):
+        from unittest.mock import patch, AsyncMock
+        mock_result = {
+            "total": 0, "page": 1, "per_page": 20, "pages": 0, "items": []
+        }
+        with patch("app.services.openalex.search_openalex", new_callable=AsyncMock, return_value=mock_result):
+            resp = await client.get("/api/articles/openalex-search?institution=MIT")
+        assert resp.status_code == 200
+
+    async def test_institution_with_search(self, client, mock_repo):
+        from unittest.mock import patch, AsyncMock
+        mock_result = {
+            "total": 0, "page": 1, "per_page": 20, "pages": 0, "items": []
+        }
+        with patch("app.services.openalex.search_openalex", new_callable=AsyncMock, return_value=mock_result):
+            resp = await client.get("/api/articles/openalex-search?search=AI&institution=HSE")
+        assert resp.status_code == 200

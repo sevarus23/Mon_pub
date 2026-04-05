@@ -16,6 +16,14 @@ class TestArticleFilters:
         assert f.sort_by == SortBy.published_at
         assert f.search is None
 
+    def test_topic_filter(self):
+        f = ArticleFilters(topic="AI")
+        assert f.topic == "AI"
+
+    def test_defaults_topic_none(self):
+        f = ArticleFilters()
+        assert f.topic is None
+
     def test_page_zero_rejected(self):
         with pytest.raises(ValidationError):
             ArticleFilters(page=0)
@@ -53,6 +61,17 @@ class TestArticleCreate:
         )
         assert a.num_id == "cr_abc123"
         assert a.doi is None
+        assert a.topics == []
+
+    def test_with_topics(self):
+        a = ArticleCreate(
+            num_id="cr_abc123",
+            title="Test Article",
+            authors="John Doe",
+            source="crossref",
+            topics=["AI", "NLP"],
+        )
+        assert a.topics == ["AI", "NLP"]
 
     def test_missing_num_id(self):
         with pytest.raises(ValidationError):

@@ -110,6 +110,8 @@ async def parse_crossref(since_date: date | None = None) -> int:
                 issn_list = item.get("ISSN", [])
                 issn = issn_list[0] if issn_list else None
 
+                topics = item.get("subject", [])[:10]
+
                 articles.append(ArticleCreate(
                     num_id=f"cr_{_doi_hash(doi)}",
                     title=title,
@@ -123,6 +125,7 @@ async def parse_crossref(since_date: date | None = None) -> int:
                     cited_by_count=item.get("is-referenced-by-count"),
                     language=item.get("language"),
                     source="crossref",
+                    topics=topics,
                 ))
 
             if articles:

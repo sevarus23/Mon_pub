@@ -13,6 +13,7 @@ export interface Article {
   cited_by_count: number | null;
   language: string | null;
   source: string | null;
+  topics: string[];
   created_at: string;
   updated_at: string;
 }
@@ -59,9 +60,11 @@ export interface Filters {
   journal_name: string;
   author: string;
   article_type: string;
+  topic: string;
   quartile: string;
   scopus_only: boolean;
   iu_only: boolean;
+  institution: string;
   sort_by: string;
   sort_order: string;
   page: number;

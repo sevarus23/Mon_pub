@@ -29,6 +29,7 @@ class ArticleFilters(BaseModel):
     year: int | None = None
     quartile: str | None = None
     article_type: str | None = None
+    topic: str | None = None
     scopus_only: bool = False
     sort_by: SortBy = SortBy.published_at
     sort_order: SortOrder = SortOrder.desc
@@ -49,6 +50,7 @@ class ArticleCreate(BaseModel):
     cited_by_count: int | None = None
     language: str | None = None
     source: str
+    topics: list[str] = []
 
 
 class ArticleOut(BaseModel):
@@ -66,6 +68,7 @@ class ArticleOut(BaseModel):
     cited_by_count: int | None
     language: str | None
     source: str
+    topics: list[str] = []
     created_at: datetime
     updated_at: datetime
 

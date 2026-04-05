@@ -242,6 +242,7 @@ class TestExportEndpoint:
             journal_name="J", issn="1234-5678", type="Articles",
             quartile="Q1", publisher="P", cited_by_count=5,
             language="en", source="crossref", topics=["AI"], white_list_level=1, core_rank=None,
+            in_scopus=False,
             created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
         ).items():
             setattr(mock_article, field, val)
@@ -262,6 +263,7 @@ class TestExportEndpoint:
             journal_name="J", issn="1234-5678", type="Articles",
             quartile="Q1", publisher="P", cited_by_count=5,
             language="en", source="crossref", topics=[], white_list_level=None, core_rank=None,
+            in_scopus=False,
             created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
         ).items():
             setattr(mock_article, field, val)

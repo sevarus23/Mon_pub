@@ -105,7 +105,10 @@ async def update_white_list_levels() -> int:
             result = await session.execute(
                 update(Article)
                 .where(Article.issn == issn)
-                .where(Article.white_list_level != level)
+                .where(
+                    (Article.white_list_level.is_(None))
+                    | (Article.white_list_level != level)
+                )
                 .values(white_list_level=level)
             )
             updated += result.rowcount

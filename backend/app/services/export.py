@@ -32,6 +32,8 @@ def _cell_value(article: Article, field: str):
     val = getattr(article, field, None)
     if val is None:
         return ""
+    if isinstance(val, bool):
+        return "Да" if val else "Нет"
     if isinstance(val, date):
         return val.isoformat()
     if isinstance(val, list):

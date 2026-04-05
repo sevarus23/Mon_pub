@@ -111,7 +111,7 @@ npm run dev
 
 ## Тестирование
 
-### Backend (174 тестов)
+### Backend (210 тестов)
 
 ```bash
 cd backend
@@ -121,8 +121,8 @@ pytest tests/ -v
 
 | Уровень | Что проверяется | Кол-во |
 |---------|----------------|--------|
-| `tests/unit/` | Чистые функции: парсинг, маппинг типов, SJR CSV, Pydantic-схемы, экспорт, topics, white list | 135 |
-| `tests/api/` | Контракт HTTP-эндпоинтов (статус-коды, валидация, экспорт, topics, institution, white list, CORE) | 32 |
+| `tests/unit/` | Парсинг, маппинг типов, SJR CSV, Pydantic-схемы, экспорт, topics, white list, CORE ranks, scopus | 159 |
+| `tests/api/` | Контракт HTTP-эндпоинтов (валидация, экспорт, topics, institution, white list, CORE, sources-table, conferences-table) | 44 |
 | `tests/service/` | Логика сервисов с мокированием HTTP через respx | 17 |
 
 ### Frontend (31 тест)

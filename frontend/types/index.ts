@@ -132,5 +132,16 @@ export function isNewToday(publishedAt: string | null): boolean {
 export function formatDate(dateStr: string | null): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
+  const now = new Date();
+  if (d.getFullYear() > now.getFullYear() + 1) {
+    return `${d.toLocaleDateString("ru-RU")} (!)`;
+  }
   return d.toLocaleDateString("ru-RU");
+}
+
+export function isFutureDate(dateStr: string | null): boolean {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getFullYear() > now.getFullYear() + 1;
 }

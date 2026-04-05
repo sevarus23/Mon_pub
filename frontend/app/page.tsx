@@ -7,6 +7,7 @@ import Filters from "@/components/Filters";
 import ArticleList from "@/components/ArticleList";
 import Sidebar from "@/components/Sidebar";
 import Pagination from "@/components/Pagination";
+import SourcesTable from "@/components/SourcesTable";
 import { getArticles, getStats, searchOpenAlex, getExportUrl } from "@/lib/api";
 import type { ArticlesResponse, Stats, Filters as FiltersType } from "@/types";
 
@@ -88,6 +89,7 @@ function HomeContent() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"articles" | "sources">("articles");
   const listRef = useRef<HTMLDivElement>(null);
   const isInitial = useRef(true);
 
@@ -196,6 +198,37 @@ function HomeContent() {
         onSearch={handleSearch}
         onReset={handleReset}
       />
+      {/* Tabs */}
+      <div className="max-w-[1280px] mx-auto px-5 pt-4">
+        <div className="flex gap-1 border-b border-surface-border">
+          <button
+            onClick={() => setActiveTab("articles")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+              activeTab === "articles"
+                ? "border-primary text-primary"
+                : "border-transparent text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            Публикации
+          </button>
+          <button
+            onClick={() => setActiveTab("sources")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+              activeTab === "sources"
+                ? "border-primary text-primary"
+                : "border-transparent text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            Источники
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "sources" ? (
+        <main className="max-w-[1280px] mx-auto px-5 py-6">
+          <SourcesTable />
+        </main>
+      ) : (
       <main className="max-w-[1280px] mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
         <div ref={listRef}>
           <div className="flex justify-between items-center mb-4">
@@ -291,6 +324,7 @@ function HomeContent() {
 
         <Sidebar stats={stats} onQuartileClick={handleQuartileClick} globalMode={globalMode} />
       </main>
+      )}
     </div>
   );
 }

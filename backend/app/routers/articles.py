@@ -14,6 +14,7 @@ from app.schemas.article import (
     ParseResponse,
     SortBy,
     SortOrder,
+    SourceInfo,
     StatsOut,
 )
 from app.services.export import export_csv, export_xlsx
@@ -109,6 +110,14 @@ async def get_topics(
     repo: ArticleRepository = Depends(_get_repo),
 ):
     return await repo.get_topics(search=search)
+
+
+@router.get("/sources-table", response_model=list[SourceInfo])
+async def get_sources_table(
+    search: str | None = None,
+    repo: ArticleRepository = Depends(_get_repo),
+):
+    return await repo.get_sources_table(search=search)
 
 
 @router.get("/export")

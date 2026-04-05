@@ -186,23 +186,23 @@ export default function SourcesTable() {
                       {src.quartile}
                     </span>
                   ) : (
-                    <span className="text-text-muted">\u2014</span>
+                    <span className="text-text-muted">&mdash;</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
                   {src.in_scopus ? (
                     <span className="text-primary font-bold">&#10003;</span>
                   ) : (
-                    <span className="text-text-muted">\u2014</span>
+                    <span className="text-text-muted">&mdash;</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
                   {src.in_white_list ? (
                     <span className="inline-block py-0.5 px-2 rounded text-xs font-bold bg-emerald-600 text-white">
-                      {`\u0411\u0421-${src.white_list_level}`}
+                      {`БС-${src.white_list_level}`}
                     </span>
                   ) : (
-                    <span className="text-text-muted">\u2014</span>
+                    <span className="text-text-muted">&mdash;</span>
                   )}
                 </td>
               </tr>

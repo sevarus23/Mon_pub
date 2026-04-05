@@ -68,6 +68,7 @@ export default function Filters({
     filters.date_to,
     filters.scopus_only,
     filters.white_list_only,
+    filters.core_rank,
     filters.institution,
   ].filter(Boolean).length;
 
@@ -121,6 +122,22 @@ export default function Filters({
           )}
 
           {filters.iu_only && (
+            <FilterGroup label="CORE ранг">
+              <select
+                className="filter-select min-w-[100px]"
+                value={filters.core_rank}
+                onChange={(e) => onChange({ core_rank: e.target.value })}
+              >
+                <option value="">Все</option>
+                <option value="A*">A*</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+              </select>
+            </FilterGroup>
+          )}
+
+          {filters.iu_only && (
             <label className="flex items-center gap-2 self-end h-[38px] cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -128,7 +145,7 @@ export default function Filters({
                 onChange={(e) => onChange({ scopus_only: e.target.checked })}
                 className="w-4 h-4 accent-primary rounded"
               />
-              <span className="text-sm text-text-secondary whitespace-nowrap">Источники из Scopus</span>
+              <span className="text-sm text-text-secondary whitespace-nowrap">Scopus</span>
             </label>
           )}
 
@@ -199,6 +216,9 @@ export default function Filters({
             )}
             {filters.white_list_only && (
               <Chip label="Белый список МОН" onRemove={() => onChange({ white_list_only: false })} />
+            )}
+            {filters.core_rank && (
+              <Chip label={`CORE ${filters.core_rank}`} onRemove={() => onChange({ core_rank: "" })} />
             )}
             {filters.institution && (
               <Chip label={`Институция: ${filters.institution}`} onRemove={() => onChange({ institution: "" })} />

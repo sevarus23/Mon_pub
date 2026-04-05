@@ -34,6 +34,7 @@ export async function getArticles(params: {
   topic?: string;
   scopus_only?: boolean;
   white_list_only?: boolean;
+  core_rank?: string;
   sort_by?: string;
   sort_order?: string;
 }): Promise<ArticlesResponse> {

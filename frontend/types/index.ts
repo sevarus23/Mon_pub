@@ -68,6 +68,8 @@ export interface Filters {
   white_list_only: boolean;
   core_rank: string;
   iu_only: boolean;
+  hide_numeric_titles: boolean;
+  hide_without_doi: boolean;
   institution: string;
   sort_by: string;
   sort_order: string;

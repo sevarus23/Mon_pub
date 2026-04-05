@@ -112,5 +112,15 @@ class StatsOut(BaseModel):
     top_journals: list[JournalCount]
 
 
+class SourceInfo(BaseModel):
+    journal_name: str
+    issn: str | None
+    article_count: int
+    quartile: str | None
+    white_list_level: int | None
+    in_scopus: bool
+    in_white_list: bool
+
+
 class ParseResponse(BaseModel):
     message: str

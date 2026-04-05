@@ -15,6 +15,7 @@ from app.schemas.article import (
     PaginatedArticles,
     SortOrder,
     SourceCount,
+    SourceInfo,
     StatsOut,
     YearCount,
 )
@@ -347,6 +348,45 @@ class ArticleRepository:
             )
         rows = (await self._session.execute(query)).all()
         return [r[0] for r in rows]
+
+    async def get_sources_table(self, search: str | None = None) -> list[SourceInfo]:
+        from app.utils.scopus import get_scopus_issns
+        scopus_issns = get_scopus_issns()
+
+        query = (
+            select(
+                Article.journal_name,
+                Article.issn,
+                func.count(Article.id).label("article_count"),
+                func.max(Article.quartile).label("quartile"),
+                func.max(Article.white_list_level).label("white_list_level"),
+            )
+            .where(Article.journal_name.is_not(None))
+            .group_by(Article.journal_name, Article.issn)
+            .order_by(func.count(Article.id).desc())
+        )
+
+        if search:
+            await self._session.execute(
+                text(f"SET pg_trgm.similarity_threshold = {SIMILARITY_THRESHOLD}")
+            )
+            query = query.where(
+                func.word_similarity(search, Article.journal_name) > 0.3
+            )
+
+        rows = (await self._session.execute(query)).all()
+        return [
+            SourceInfo(
+                journal_name=r.journal_name,
+                issn=r.issn,
+                article_count=r.article_count,
+                quartile=r.quartile,
+                white_list_level=r.white_list_level,
+                in_scopus=r.issn in scopus_issns if r.issn else False,
+                in_white_list=r.white_list_level is not None,
+            )
+            for r in rows
+        ]
 
     async def normalize_all_types(self) -> int:
         """Update existing articles with normalized type mapping."""

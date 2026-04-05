@@ -73,6 +73,16 @@ export interface Filters {
   per_page: number;
 }
 
+export interface SourceInfo {
+  journal_name: string;
+  issn: string | null;
+  article_count: number;
+  quartile: string | null;
+  white_list_level: number | null;
+  in_scopus: boolean;
+  in_white_list: boolean;
+}
+
 export const TYPE_LABELS: Record<string, string> = {
   // CrossRef types
   "journal-article": "Статья",

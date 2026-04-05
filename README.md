@@ -1,8 +1,10 @@
 # Mon_pub -- Мониторинг публикационной активности
 
+![Version](https://img.shields.io/badge/version-v1.4.0-blue)
 ![Tests](https://github.com/sevarus23/Mon_pub/actions/workflows/tests.yml/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-Платформа агрегации научных публикаций Университета Иннополис. Собирает статьи из **CrossRef** и **OpenAlex**, обогащает квартилями из рейтинга **SJR**, предоставляет веб-интерфейс для поиска и фильтрации.
+Платформа агрегации научных публикаций Университета Иннополис. Собирает статьи из **CrossRef** и **OpenAlex**, обогащает квартилями из рейтинга **SJR**, предоставляет веб-интерфейс для поиска, фильтрации и экспорта.
 
 ## Архитектура
 
@@ -10,9 +12,9 @@
 ┌─────────────┐     ┌──────────────┐     ┌────────────────┐
 │  CrossRef   │────>│              │     │                │
 │    API      │     │   Backend    │────>│  PostgreSQL    │
-│             │     │  (FastAPI)   │     │  + pg_trgm     │
-├─────────────┤     │              │     └────────────────┘
-│  OpenAlex   │────>│  :8001       │
+│             │     │  (FastAPI)   │     │  pg_trgm +     │
+├─────────────┤     │              │     │  tsvector FTS  │
+│  OpenAlex   │────>│  :8001       │     └────────────────┘
 │    API      │     └──────┬───────┘
 └─────────────┘            │
                            │ REST API
@@ -25,10 +27,24 @@
 
 | Компонент | Стек |
 |-----------|------|
-| Backend | Python 3.12, FastAPI, SQLAlchemy 2.0 (async), Alembic, httpx, tenacity |
+| Backend | Python 3.12, FastAPI, SQLAlchemy 2.0 (async), Alembic, httpx, tenacity, openpyxl |
 | Frontend | Next.js 14, React 18, Tailwind CSS, TypeScript |
-| База данных | PostgreSQL 16 с расширением `pg_trgm` (нечёткий поиск) |
+| База данных | PostgreSQL 16 с расширениями `pg_trgm` (нечёткий поиск) и `tsvector` (stemming) |
 | Данные SJR | CSV из [SCImago Journal Rank](https://www.scimagojr.com/) |
+
+## Диаграммы
+
+Диаграммы доступны в форматах SVG и PDF в директории [`diagrams/`](diagrams/).
+
+### ERD (Entity-Relationship Diagram)
+
+![ERD](diagrams/erd.svg)
+
+### DFD (Data Flow Diagram)
+
+![DFD](diagrams/dfd.svg)
+
+> PDF-версии: [ERD (PDF)](diagrams/erd.pdf) | [DFD (PDF)](diagrams/dfd.pdf)
 
 ## Быстрый старт
 
@@ -60,31 +76,38 @@ npm run dev
 - **API**: http://localhost:8001
 - **Swagger UI**: http://localhost:8001/docs
 - **Frontend**: http://localhost:3000
-- **PgAdmin**: http://localhost:5051
 
 ## API
 
 | Метод | Эндпоинт | Описание |
 |-------|----------|----------|
-| GET | `/api/articles` | Список статей с фильтрами, поиском и пагинацией |
+| GET | `/api/articles` | Список статей с фильтрами, поиском, topic и пагинацией |
 | GET | `/api/articles/{id}` | Статья по ID |
 | GET | `/api/articles/stats` | Статистика: всего, по годам, по источникам, топ журналов |
+| GET | `/api/articles/export` | Экспорт в XLSX/CSV с текущими фильтрами |
+| GET | `/api/articles/openalex-search` | Глобальный поиск OpenAlex с фильтром по институции |
 | GET | `/api/articles/journals` | Список журналов (с fuzzy search) |
 | GET | `/api/articles/authors` | Список авторов (с fuzzy search) |
 | GET | `/api/articles/types` | Типы публикаций |
+| GET | `/api/articles/topics` | Темы публикаций (с fuzzy search) |
 | GET | `/api/articles/quartiles` | Доступные квартили |
 | POST | `/api/articles/parse` | Запуск парсинга CrossRef + OpenAlex |
 | POST | `/api/articles/update-quartiles` | Обновление квартилей из SJR CSV |
 | POST | `/api/articles/normalize-types` | Нормализация типов статей |
+| POST | `/api/articles/backfill-topics` | Обогащение существующих статей темами из OpenAlex |
 | GET | `/health` | Проверка состояния сервиса |
 
 ### Параметры фильтрации `GET /api/articles`
 
-`search`, `journal_name`, `author`, `title`, `doi`, `issn`, `date_from`, `date_to`, `year`, `quartile`, `article_type`, `source`, `sort_by`, `sort_order`, `page`, `per_page`
+`search`, `journal_name`, `author`, `title`, `doi`, `issn`, `date_from`, `date_to`, `year`, `quartile`, `article_type`, `topic`, `source`, `scopus_only`, `sort_by`, `sort_order`, `page`, `per_page`
+
+### Параметры экспорта `GET /api/articles/export`
+
+Все параметры фильтрации (кроме `page`/`per_page`) + `format` (`xlsx` или `csv`). Лимит: 10 000 записей.
 
 ## Тестирование
 
-### Backend (119 тестов)
+### Backend (159 тестов)
 
 ```bash
 cd backend
@@ -94,11 +117,11 @@ pytest tests/ -v
 
 | Уровень | Что проверяется | Кол-во |
 |---------|----------------|--------|
-| `tests/unit/` | Чистые функции: парсинг дат, авторов, маппинг типов, SJR CSV, Pydantic-схемы | 84 |
-| `tests/api/` | Контракт HTTP-эндпоинтов (статус-коды, валидация, формат ответа) | 18 |
+| `tests/unit/` | Чистые функции: парсинг, маппинг типов, SJR CSV, Pydantic-схемы, экспорт, topics extraction | 124 |
+| `tests/api/` | Контракт HTTP-эндпоинтов (статус-коды, валидация, экспорт, topics, institution) | 28 |
 | `tests/service/` | Логика сервисов с мокированием HTTP через respx | 17 |
 
-### Frontend (22 теста)
+### Frontend (31 тест)
 
 ```bash
 cd frontend
@@ -106,13 +129,25 @@ npm install
 npm test
 ```
 
-Тестируются утилитные функции: `getTypeLabel`, `getQuartileClass`, `isNewToday`, `formatDate`, `buildQuery`.
+Тестируются утилитные функции: `getTypeLabel`, `getQuartileClass`, `isNewToday`, `formatDate`, `buildQuery`, `getExportUrl`.
 
 ## CI/CD
 
 GitHub Actions автоматически запускает все тесты на каждый push и pull request в `main`.
 
 Branch Protection настроен так, что **мерж в main невозможен**, если хотя бы один тест не проходит.
+
+## Версионирование
+
+Проект использует [Semantic Versioning](https://semver.org/). Все релизы доступны на [GitHub Releases](https://github.com/sevarus23/Mon_pub/releases).
+
+| Версия | Дата | Ключевое |
+|--------|------|----------|
+| [v1.4.0](https://github.com/sevarus23/Mon_pub/releases/tag/v1.4.0) | 2026-04-05 | Экспорт XLSX/CSV, topics/keywords, stemming, institution search, autocomplete |
+| [v1.3.0](https://github.com/sevarus23/Mon_pub/releases/tag/v1.3.0) | 2026-04-01 | Глобальный поиск OpenAlex |
+| [v1.2.0](https://github.com/sevarus23/Mon_pub/releases/tag/v1.2.0) | 2026-04-01 | Фильтр Scopus (71k ISSN) |
+| [v1.1.0](https://github.com/sevarus23/Mon_pub/releases/tag/v1.1.0) | 2026-04-01 | CI/CD пайплайн, автодеплой |
+| [v1.0.0](https://github.com/sevarus23/Mon_pub/releases/tag/v1.0.0) | 2026-03-31 | Первый релиз: парсинг, поиск, фильтры, дизайн IU |
 
 ## Структура проекта
 
@@ -127,18 +162,20 @@ Mon_pub/
 │   │   ├── repositories/      # Слой доступа к данным
 │   │   ├── routers/           # HTTP-эндпоинты
 │   │   ├── schemas/           # Pydantic-схемы
-│   │   ├── services/          # Бизнес-логика (CrossRef, OpenAlex, SJR, Scheduler)
-│   │   └── utils/             # Маппинг типов публикаций
-│   ├── data/                  # SJR CSV файл
+│   │   ├── services/          # CrossRef, OpenAlex, SJR, Export, Topics, Scheduler
+│   │   └── utils/             # Маппинг типов, Scopus ISSN
+│   ├── alembic/versions/      # Миграции БД (001–003)
+│   ├── data/                  # SJR CSV, Scopus ISSN JSON
 │   ├── tests/                 # Тесты (unit, api, service)
-│   ├── docker-compose.yml
 │   └── requirements.txt
 ├── frontend/
 │   ├── app/                   # Next.js страницы
-│   ├── components/            # React-компоненты
+│   ├── components/            # React-компоненты (+ Autocomplete)
 │   ├── lib/                   # API-клиент
 │   ├── types/                 # TypeScript типы + утилиты
 │   └── __tests__/             # Jest тесты
+├── diagrams/                  # ERD и DFD (SVG, PDF, Mermaid)
 ├── .github/workflows/         # CI/CD пайплайн
+├── docker-compose.yml
 └── testplan.md                # Полный тест-план проекта
 ```

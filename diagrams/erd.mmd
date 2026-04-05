@@ -1,0 +1,48 @@
+erDiagram
+    ARTICLE {
+        int id PK "SERIAL"
+        varchar num_id UK "NOT NULL UNIQUE"
+        text title "NOT NULL"
+        text authors "NOT NULL"
+        varchar doi UK "UNIQUE nullable"
+        date published_at "nullable"
+        varchar journal_name "nullable"
+        varchar issn "nullable"
+        varchar type "nullable"
+        varchar quartile "nullable Q1-Q4"
+        varchar publisher "nullable"
+        int cited_by_count "nullable"
+        varchar language "nullable"
+        varchar source "NOT NULL"
+        text_arr topics "DEFAULT empty"
+        tsvector search_vector "GENERATED"
+        timestamp created_at "DEFAULT NOW"
+        timestamp updated_at "ON UPDATE"
+    }
+
+    CROSSREF_API {
+        string base_url "api.crossref.org"
+        string filter "affiliation Innopolis"
+        int page_size "100 offset-based"
+    }
+
+    OPENALEX_API {
+        string base_url "api.openalex.org"
+        string ror_id "02b7jh107"
+        int page_size "200 cursor-based"
+    }
+
+    SJR_RANKINGS {
+        string file "scimagojr_2024.csv"
+        string mapping "ISSN to Quartile"
+    }
+
+    SCOPUS_INDEX {
+        string file "scopus_issns.json"
+        string content "ISSN whitelist"
+    }
+
+    CROSSREF_API ||--o{ ARTICLE : "ingests via parse_crossref"
+    OPENALEX_API ||--o{ ARTICLE : "ingests via parse_openalex"
+    SJR_RANKINGS ||--o{ ARTICLE : "enriches quartile by ISSN"
+    SCOPUS_INDEX ||--o{ ARTICLE : "filters by ISSN membership"

@@ -260,7 +260,9 @@ async def trigger_backfill_topics(background_tasks: BackgroundTasks):
 
 
 @router.post("/update-white-list", response_model=ParseResponse)
-async def trigger_update_white_list(background_tasks: BackgroundTasks):
+async def trigger_update_white_list(
+    session: AsyncSession = Depends(get_session),
+):
     from app.services.white_list import update_white_list_levels
-    background_tasks.add_task(asyncio.to_thread, lambda: asyncio.run(update_white_list_levels()))
-    return ParseResponse(message="White list update started in background")
+    updated = await update_white_list_levels(session)
+    return ParseResponse(message=f"White list updated: {updated} articles")

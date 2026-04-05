@@ -31,6 +31,7 @@ class ArticleFilters(BaseModel):
     article_type: str | None = None
     topic: str | None = None
     scopus_only: bool = False
+    white_list_only: bool = False
     sort_by: SortBy = SortBy.published_at
     sort_order: SortOrder = SortOrder.desc
     page: int = Field(1, ge=1)
@@ -69,6 +70,7 @@ class ArticleOut(BaseModel):
     language: str | None
     source: str
     topics: list[str] = []
+    white_list_level: int | None = None
     created_at: datetime
     updated_at: datetime
 

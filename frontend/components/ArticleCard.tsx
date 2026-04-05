@@ -63,6 +63,12 @@ export default function ArticleCard({ article }: ArticleCardProps) {
           </span>
         )}
 
+        {article.white_list_level && (
+          <span className="inline-block py-0.5 px-2 rounded text-xs font-bold bg-emerald-600 text-white" title="Белый список МОН РФ">
+            {`БС-${article.white_list_level}`}
+          </span>
+        )}
+
         <span className="py-0.5 px-2 rounded bg-type-bg text-type-text text-xs font-medium">
           {typeLabel}
         </span>

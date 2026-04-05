@@ -67,6 +67,7 @@ export default function Filters({
     filters.date_from,
     filters.date_to,
     filters.scopus_only,
+    filters.white_list_only,
     filters.institution,
   ].filter(Boolean).length;
 
@@ -131,6 +132,18 @@ export default function Filters({
             </label>
           )}
 
+          {filters.iu_only && (
+            <label className="flex items-center gap-2 self-end h-[38px] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={filters.white_list_only}
+                onChange={(e) => onChange({ white_list_only: e.target.checked })}
+                className="w-4 h-4 accent-emerald-600 rounded"
+              />
+              <span className="text-sm text-text-secondary whitespace-nowrap">Белый список МОН РФ</span>
+            </label>
+          )}
+
           <button
             className="h-[38px] px-5 bg-primary text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-primary-dark self-end"
             onClick={onSearch}
@@ -183,6 +196,9 @@ export default function Filters({
             )}
             {filters.scopus_only && (
               <Chip label="Scopus" onRemove={() => onChange({ scopus_only: false })} />
+            )}
+            {filters.white_list_only && (
+              <Chip label="Белый список МОН" onRemove={() => onChange({ white_list_only: false })} />
             )}
             {filters.institution && (
               <Chip label={`Институция: ${filters.institution}`} onRemove={() => onChange({ institution: "" })} />

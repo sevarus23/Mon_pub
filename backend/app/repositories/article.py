@@ -483,4 +483,9 @@ class ArticleRepository:
             query = query.where(cond)
             count_query = count_query.where(cond)
 
+        if filters.white_list_only:
+            cond = Article.white_list_level.is_not(None)
+            query = query.where(cond)
+            count_query = count_query.where(cond)
+
         return query, count_query

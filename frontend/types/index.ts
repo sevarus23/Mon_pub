@@ -14,6 +14,7 @@ export interface Article {
   language: string | null;
   source: string | null;
   topics: string[];
+  white_list_level: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -63,6 +64,7 @@ export interface Filters {
   topic: string;
   quartile: string;
   scopus_only: boolean;
+  white_list_only: boolean;
   iu_only: boolean;
   institution: string;
   sort_by: string;

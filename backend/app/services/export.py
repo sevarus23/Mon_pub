@@ -17,6 +17,7 @@ COLUMNS = [
     ("ISSN", "issn"),
     ("Тип", "type"),
     ("Квартиль", "quartile"),
+    ("Белый список МОН", "white_list_level"),
     ("Издатель", "publisher"),
     ("Цитирования", "cited_by_count"),
     ("Язык", "language"),

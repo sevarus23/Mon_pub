@@ -25,6 +25,7 @@ def _mock_article(**overrides):
         language="en",
         source="crossref",
         topics=["AI", "Machine Learning"],
+        white_list_level=1,
     )
     defaults.update(overrides)
     article = MagicMock()

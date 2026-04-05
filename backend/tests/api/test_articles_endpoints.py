@@ -32,6 +32,7 @@ def _make_article(**overrides) -> ArticleOut:
         language="en",
         source="crossref",
         topics=["AI", "Machine Learning"],
+        white_list_level=1,
         created_at=datetime(2024, 1, 1),
         updated_at=datetime(2024, 1, 1),
     )
@@ -121,7 +122,7 @@ class TestGetArticle:
             doi="10.1/x", published_at=date(2024, 1, 1),
             journal_name="J", issn="1234-5678", type="Articles",
             quartile="Q1", publisher="P", cited_by_count=5,
-            language="en", source="crossref", topics=["AI"],
+            language="en", source="crossref", topics=["AI"], white_list_level=1,
             created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
         ).items():
             setattr(mock_article, field, val)
@@ -239,7 +240,7 @@ class TestExportEndpoint:
             doi="10.1/x", published_at=date(2024, 1, 1),
             journal_name="J", issn="1234-5678", type="Articles",
             quartile="Q1", publisher="P", cited_by_count=5,
-            language="en", source="crossref", topics=["AI"],
+            language="en", source="crossref", topics=["AI"], white_list_level=1,
             created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
         ).items():
             setattr(mock_article, field, val)
@@ -259,7 +260,7 @@ class TestExportEndpoint:
             doi="10.1/x", published_at=date(2024, 1, 1),
             journal_name="J", issn="1234-5678", type="Articles",
             quartile="Q1", publisher="P", cited_by_count=5,
-            language="en", source="crossref", topics=[],
+            language="en", source="crossref", topics=[], white_list_level=None,
             created_at=datetime(2024, 1, 1), updated_at=datetime(2024, 1, 1),
         ).items():
             setattr(mock_article, field, val)
@@ -316,3 +317,27 @@ class TestOpenAlexSearchWithInstitution:
         with patch("app.services.openalex.search_openalex", new_callable=AsyncMock, return_value=mock_result):
             resp = await client.get("/api/articles/openalex-search?search=AI&institution=HSE")
         assert resp.status_code == 200
+
+
+class TestWhiteListFilter:
+    """Tests for white_list_only filter and update endpoint."""
+
+    async def test_white_list_filter_200(self, client, mock_repo):
+        mock_repo.get_filtered.return_value = _make_paginated(items=[], total=0, pages=0)
+        resp = await client.get("/api/articles?white_list_only=true")
+        assert resp.status_code == 200
+
+    async def test_articles_include_white_list_level(self, client, mock_repo):
+        mock_repo.get_filtered.return_value = _make_paginated()
+        resp = await client.get("/api/articles")
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        assert "white_list_level" in items[0]
+        assert items[0]["white_list_level"] == 1
+
+    async def test_update_white_list_200(self, client, mock_repo):
+        from unittest.mock import patch, AsyncMock
+        with patch("app.services.white_list.update_white_list_levels", new_callable=AsyncMock):
+            resp = await client.post("/api/articles/update-white-list")
+        assert resp.status_code == 200
+        assert "message" in resp.json()

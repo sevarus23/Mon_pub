@@ -46,6 +46,7 @@ async def list_articles(
     article_type: str | None = None,
     topic: str | None = None,
     scopus_only: bool = False,
+    white_list_only: bool = False,
     sort_by: SortBy = SortBy.published_at,
     sort_order: SortOrder = SortOrder.desc,
 ):
@@ -64,6 +65,7 @@ async def list_articles(
         article_type=article_type,
         topic=topic,
         scopus_only=scopus_only,
+        white_list_only=white_list_only,
         sort_by=sort_by,
         sort_order=sort_order,
         page=page,
@@ -127,6 +129,7 @@ async def export_articles(
     article_type: str | None = None,
     topic: str | None = None,
     scopus_only: bool = False,
+    white_list_only: bool = False,
     sort_by: SortBy = SortBy.published_at,
     sort_order: SortOrder = SortOrder.desc,
 ):
@@ -145,6 +148,7 @@ async def export_articles(
         article_type=article_type,
         topic=topic,
         scopus_only=scopus_only,
+        white_list_only=white_list_only,
         sort_by=sort_by,
         sort_order=sort_order,
     )
@@ -244,3 +248,10 @@ async def trigger_backfill_topics(background_tasks: BackgroundTasks):
     from app.services.topics import backfill_topics
     background_tasks.add_task(asyncio.to_thread, lambda: asyncio.run(backfill_topics()))
     return ParseResponse(message="Topics backfill started in background")
+
+
+@router.post("/update-white-list", response_model=ParseResponse)
+async def trigger_update_white_list(background_tasks: BackgroundTasks):
+    from app.services.white_list import update_white_list_levels
+    background_tasks.add_task(asyncio.to_thread, lambda: asyncio.run(update_white_list_levels()))
+    return ParseResponse(message="White list update started in background")

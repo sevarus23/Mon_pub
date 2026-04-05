@@ -20,6 +20,7 @@ const DEFAULT_FILTERS: FiltersType = {
   topic: "",
   quartile: "",
   scopus_only: false,
+  white_list_only: false,
   iu_only: true,
   institution: "",
   sort_by: "published_at",
@@ -39,6 +40,7 @@ function filtersFromParams(params: URLSearchParams): FiltersType {
     topic: params.get("topic") || "",
     quartile: params.get("quartile") || "",
     scopus_only: params.get("scopus_only") === "true",
+    white_list_only: params.get("white_list_only") === "true",
     iu_only: params.get("iu_only") !== "false",
     institution: params.get("institution") || "",
     sort_by: params.get("sort_by") || "published_at",
@@ -59,6 +61,7 @@ function filtersToParams(f: FiltersType): string {
   if (f.topic) sp.set("topic", f.topic);
   if (f.quartile) sp.set("quartile", f.quartile);
   if (f.scopus_only) sp.set("scopus_only", "true");
+  if (f.white_list_only) sp.set("white_list_only", "true");
   if (!f.iu_only) sp.set("iu_only", "false");
   if (f.institution) sp.set("institution", f.institution);
   if (f.sort_by && f.sort_by !== "published_at") sp.set("sort_by", f.sort_by);
@@ -116,6 +119,7 @@ function HomeContent() {
           article_type: f.article_type || undefined,
           topic: f.topic || undefined,
           scopus_only: f.scopus_only || undefined,
+          white_list_only: f.white_list_only || undefined,
           sort_by: f.sort_by || undefined,
           sort_order: f.sort_order || undefined,
         });
@@ -215,6 +219,7 @@ function HomeContent() {
                       article_type: filters.article_type || undefined,
                       topic: filters.topic || undefined,
                       scopus_only: filters.scopus_only || undefined,
+                      white_list_only: filters.white_list_only || undefined,
                       sort_by: filters.sort_by || undefined,
                       sort_order: filters.sort_order || undefined,
                     }, "xlsx")}
@@ -234,6 +239,7 @@ function HomeContent() {
                       article_type: filters.article_type || undefined,
                       topic: filters.topic || undefined,
                       scopus_only: filters.scopus_only || undefined,
+                      white_list_only: filters.white_list_only || undefined,
                       sort_by: filters.sort_by || undefined,
                       sort_order: filters.sort_order || undefined,
                     }, "csv")}

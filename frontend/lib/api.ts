@@ -33,6 +33,7 @@ export async function getArticles(params: {
   article_type?: string;
   topic?: string;
   scopus_only?: boolean;
+  white_list_only?: boolean;
   sort_by?: string;
   sort_order?: string;
 }): Promise<ArticlesResponse> {
@@ -86,6 +87,7 @@ export function getExportUrl(params: {
   article_type?: string;
   topic?: string;
   scopus_only?: boolean;
+  white_list_only?: boolean;
   sort_by?: string;
   sort_order?: string;
 }, format: "xlsx" | "csv" = "xlsx"): string {

@@ -195,7 +195,7 @@ export default function ConferencesTable() {
                       {conf.core_rank}
                     </span>
                   ) : (
-                    <span className="text-text-muted">{"\u2014"}</span>
+                    <span className="text-text-muted">&mdash;</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
@@ -204,16 +204,16 @@ export default function ConferencesTable() {
                       {conf.quartile}
                     </span>
                   ) : (
-                    <span className="text-text-muted">{"\u2014"}</span>
+                    <span className="text-text-muted">&mdash;</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
                   {conf.white_list_level ? (
                     <span className="inline-block py-0.5 px-2 rounded text-xs font-bold bg-emerald-600 text-white">
-                      {`\u0411\u0421-${conf.white_list_level}`}
+                      {`БС-${conf.white_list_level}`}
                     </span>
                   ) : (
-                    <span className="text-text-muted">{"\u2014"}</span>
+                    <span className="text-text-muted">&mdash;</span>
                   )}
                 </td>
               </tr>

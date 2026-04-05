@@ -52,7 +52,11 @@ async def _fetch_level(client: httpx.AsyncClient, issn: str) -> int | None:
 
 
 async def update_white_list_levels() -> int:
-    """Fetch white list levels for all unique ISSNs and update articles."""
+    """Update articles with white list levels from cache and API.
+
+    First applies levels from existing cache, then fetches uncached ISSNs
+    from the RCSI API.
+    """
     # Get all unique ISSNs from DB
     async with async_session() as session:
         result = await session.execute(
@@ -67,26 +71,27 @@ async def update_white_list_levels() -> int:
         logger.info("No ISSNs to check")
         return 0
 
-    logger.info("Checking %d unique ISSNs against White List API", len(all_issns))
+    logger.info("Checking %d unique ISSNs against White List", len(all_issns))
 
     # Load cache
     cache = _load_cache()
+    logger.info("Cache has %d entries", len(cache))
+
+    # Try to fetch uncached ISSNs from API
     issns_to_fetch = [issn for issn in all_issns if issn not in cache]
-
-    logger.info("Cache has %d entries, need to fetch %d new ISSNs", len(cache), len(issns_to_fetch))
-
-    # Fetch uncached ISSNs
-    async with httpx.AsyncClient() as client:
-        for i, issn in enumerate(issns_to_fetch):
-            level = await _fetch_level(client, issn)
-            cache[issn] = level
-            if (i + 1) % 50 == 0:
-                logger.info("Fetched %d/%d ISSNs", i + 1, len(issns_to_fetch))
-            await asyncio.sleep(0.15)  # Rate limiting: ~6 req/sec
-
-    # Save updated cache
-    _save_cache(cache)
-    logger.info("Cache updated: %d total entries", len(cache))
+    if issns_to_fetch:
+        logger.info("Fetching %d new ISSNs from RCSI API", len(issns_to_fetch))
+        try:
+            async with httpx.AsyncClient(verify=True) as client:
+                for i, issn in enumerate(issns_to_fetch):
+                    level = await _fetch_level(client, issn)
+                    cache[issn] = level
+                    if (i + 1) % 50 == 0:
+                        logger.info("Fetched %d/%d ISSNs", i + 1, len(issns_to_fetch))
+                    await asyncio.sleep(0.15)
+            _save_cache(cache)
+        except Exception:
+            logger.exception("API fetch failed, using cache only")
 
     # Build ISSN -> level mapping (only entries that have a level)
     issn_levels: dict[str, int] = {k: v for k, v in cache.items() if v is not None}

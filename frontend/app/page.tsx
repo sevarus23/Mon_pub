@@ -355,7 +355,14 @@ function HomeContent() {
           )}
         </div>
 
-        <Sidebar stats={stats} onQuartileClick={handleQuartileClick} globalMode={globalMode} />
+        <Sidebar
+          stats={stats}
+          onQuartileClick={handleQuartileClick}
+          globalMode={globalMode}
+          scopus_only={filters.scopus_only}
+          white_list_only={filters.white_list_only}
+          core_rank={filters.core_rank}
+        />
       </main>
       )}
     </div>

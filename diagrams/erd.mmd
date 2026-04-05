@@ -17,6 +17,7 @@ erDiagram
         text_arr topics "DEFAULT empty"
         int white_list_level "nullable 1-4"
         varchar core_rank "nullable A* A B C"
+        bool in_scopus "DEFAULT false"
         tsvector search_vector "GENERATED"
         timestamp created_at "DEFAULT NOW"
         timestamp updated_at "ON UPDATE"
@@ -41,7 +42,14 @@ erDiagram
 
     SCOPUS_INDEX {
         string file "scopus_issns.json"
-        string content "ISSN whitelist"
+        string content "ISSN whitelist Feb 2026"
+    }
+
+    SCOPUS_IMPORT {
+        string endpoint "POST upload-scopus"
+        string format "XLSX or CSV"
+        string matching "DOI then title+year"
+        string action "mark + create new"
     }
 
     WHITE_LIST_MON {
@@ -60,5 +68,6 @@ erDiagram
     OPENALEX_API ||--o{ ARTICLE : "ingests via parse_openalex"
     SJR_RANKINGS ||--o{ ARTICLE : "enriches quartile by ISSN"
     SCOPUS_INDEX ||--o{ ARTICLE : "filters by ISSN membership"
+    SCOPUS_IMPORT ||--o{ ARTICLE : "marks in_scopus + creates missing"
     WHITE_LIST_MON ||--o{ ARTICLE : "enriches white_list_level by ISSN"
     CORE_RANKINGS ||--o{ ARTICLE : "enriches core_rank by title match"

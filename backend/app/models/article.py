@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Column, Date, Index, Integer, String, Text, func
+from sqlalchemy import Boolean, Column, Date, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -27,6 +27,7 @@ class Article(Base):
     topics: Mapped[list[str]] = mapped_column(ARRAY(String), server_default="{}", nullable=False)
     white_list_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
     core_rank: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    in_scopus: Mapped[bool] = mapped_column(Boolean, server_default="false", nullable=False)
     search_vector = Column(TSVECTOR)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
@@ -41,5 +42,6 @@ class Article(Base):
         Index("idx_articles_topics", "topics", postgresql_using="gin"),
         Index("idx_articles_white_list_level", "white_list_level"),
         Index("idx_articles_core_rank", "core_rank"),
+        Index("idx_articles_in_scopus", "in_scopus"),
         Index("idx_articles_fts", "search_vector", postgresql_using="gin"),
     )

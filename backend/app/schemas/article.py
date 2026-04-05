@@ -73,6 +73,7 @@ class ArticleOut(BaseModel):
     topics: list[str] = []
     white_list_level: int | None = None
     core_rank: str | None = None
+    in_scopus: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -134,3 +135,11 @@ class ConferenceInfo(BaseModel):
 
 class ParseResponse(BaseModel):
     message: str
+
+
+class ScopusImportResponse(BaseModel):
+    total_in_file: int
+    matched_by_doi: int
+    matched_by_title: int
+    created_new: int
+    total_scopus: int

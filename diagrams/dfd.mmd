@@ -6,6 +6,7 @@ flowchart TB
         SCOPUS["📄 Scopus Index\nscopus_issns.json"]
         WL["🔗 Белый список МОН\njournalrank.rcsi.science\nISSN → Level 1-4"]
         CORE["📄 CORE Rankings\nportal.core.edu.au\n987 конференций"]
+        SCFILE["📤 Scopus Export\nXLSX/CSV upload\nDOI + title+year matching"]
     end
 
     subgraph BACKEND["⚙️ Backend — FastAPI"]
@@ -22,6 +23,7 @@ flowchart TB
             BT["backfill_topics\nOpenAlex DOI lookup\n→ topics[]"]
             UWL["update_white_list\nISSN → Level 1-4\nJSON cache"]
             UCR["update_core_ranks\nfuzzy title match\nJSON cache"]
+            USI["scopus_import\nmark in_scopus=true\n+ create missing articles"]
         end
 
         subgraph REPO["ArticleRepository"]
@@ -44,6 +46,7 @@ flowchart TB
             E11["GET /api/articles/conferences-table"]
             E12["POST /update-white-list"]
             E13["POST /update-core-ranks"]
+            E14["POST /upload-scopus\nXLSX/CSV → mark + create"]
         end
     end
 
@@ -85,6 +88,9 @@ flowchart TB
     E4 -->|"background"| SCHED
     E12 -->|"sync"| UWL
     E13 -->|"sync"| UCR
+    SCFILE -->|"file upload"| USI
+    USI -->|"mark + INSERT"| ARTICLES
+    E14 -->|"sync"| USI
 
     %% Query
     ARTICLES --> GF
@@ -119,8 +125,8 @@ flowchart TB
     classDef front fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef user fill:#fce4ec,stroke:#c62828,stroke-width:2px
 
-    class CR,OA,SJR,SCOPUS,WL,CORE ext
-    class PC,PO,UQ,NT,BT,UWL,UCR,BU,GF,GS,EXP,ST,CT,SCHED svc
+    class CR,OA,SJR,SCOPUS,WL,CORE,SCFILE ext
+    class PC,PO,UQ,NT,BT,UWL,UCR,USI,BU,GF,GS,EXP,ST,CT,SCHED svc
     class ARTICLES db
     class TAB1,TAB2,TAB3,SIDEBAR front
     class USER user

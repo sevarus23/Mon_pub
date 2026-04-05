@@ -4,7 +4,7 @@
 ![Tests](https://github.com/sevarus23/Mon_pub/actions/workflows/tests.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-Платформа агрегации научных публикаций Университета Иннополис. Собирает статьи из **CrossRef** и **OpenAlex**, обогащает квартилями из рейтинга **SJR**, предоставляет веб-интерфейс для поиска, фильтрации и экспорта.
+Платформа агрегации научных публикаций Университета Иннополис. Собирает статьи из **CrossRef** и **OpenAlex**, поддерживает импорт из **Scopus** (XLSX/CSV), обогащает квартилями из рейтинга **SJR**, предоставляет веб-интерфейс для поиска, фильтрации и экспорта.
 
 ## Архитектура
 
@@ -16,6 +16,9 @@
 ├─────────────┤     │              │     │  tsvector FTS  │
 │  OpenAlex   │────>│  :8001       │     └────────────────┘
 │    API      │     └──────┬───────┘
+├─────────────┤            │
+│  Scopus     │────>  upload-scopus
+│  XLSX/CSV   │            │
 └─────────────┘            │
                            │ REST API
                     ┌──────┴───────┐
@@ -31,6 +34,7 @@
 | Frontend | Next.js 14, React 18, Tailwind CSS, TypeScript |
 | База данных | PostgreSQL 16 с расширениями `pg_trgm` (нечёткий поиск) и `tsvector` (stemming) |
 | Данные SJR | CSV из [SCImago Journal Rank](https://www.scimagojr.com/) |
+| Scopus Import | ��агрузка экспорта Scopus (XLSX/CSV), ��аппинг по DOI + title/year |
 
 ## Диаграммы
 
@@ -99,6 +103,7 @@ npm run dev
 | GET | `/api/articles/conferences-table` | Таблица конференций с CORE рангами |
 | POST | `/api/articles/update-white-list` | Обновление уровней Белого списка МОН РФ |
 | POST | `/api/articles/update-core-ranks` | Обновление CORE рангов конференций |
+| POST | `/api/articles/upload-scopus` | Загрузка Scopus XLSX/CSV: маппинг + создание недостающих |
 | GET | `/health` | Проверка состояния сервиса |
 
 ### Параметры фильтрации `GET /api/articles`
@@ -167,9 +172,9 @@ Mon_pub/
 │   │   ├── repositories/      # Слой доступа к данным
 │   │   ├── routers/           # HTTP-эндпоинты
 │   │   ├── schemas/           # Pydantic-схемы
-│   │   ├── services/          # CrossRef, OpenAlex, SJR, Export, Topics, White List, CORE, Scheduler
+│   │   ├── services/          # CrossRef, OpenAlex, SJR, Export, Topics, White List, CORE, Scopus Import, Scheduler
 │   │   └── utils/             # Маппинг типов, Scopus ISSN
-│   ├── alembic/versions/      # Миграции БД (001–005)
+│   ├── alembic/versions/      # Миграции БД (001–006)
 │   ├── data/                  # SJR CSV, Scopus ISSN, White List cache, CORE ranks
 │   ├── tests/                 # Тесты (unit, api, service)
 │   └── requirements.txt

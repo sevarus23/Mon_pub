@@ -15,6 +15,8 @@ erDiagram
         varchar language "nullable"
         varchar source "NOT NULL"
         text_arr topics "DEFAULT empty"
+        int white_list_level "nullable 1-4"
+        varchar core_rank "nullable A* A B C"
         tsvector search_vector "GENERATED"
         timestamp created_at "DEFAULT NOW"
         timestamp updated_at "ON UPDATE"
@@ -42,7 +44,21 @@ erDiagram
         string content "ISSN whitelist"
     }
 
+    WHITE_LIST_MON {
+        string api "journalrank.rcsi.science"
+        string mapping "ISSN to Level 1-4"
+        string cache "white_list_cache.json"
+    }
+
+    CORE_RANKINGS {
+        string source "portal.core.edu.au"
+        string cache "core_ranks.json"
+        string mapping "Title to Rank A* A B C"
+    }
+
     CROSSREF_API ||--o{ ARTICLE : "ingests via parse_crossref"
     OPENALEX_API ||--o{ ARTICLE : "ingests via parse_openalex"
     SJR_RANKINGS ||--o{ ARTICLE : "enriches quartile by ISSN"
     SCOPUS_INDEX ||--o{ ARTICLE : "filters by ISSN membership"
+    WHITE_LIST_MON ||--o{ ARTICLE : "enriches white_list_level by ISSN"
+    CORE_RANKINGS ||--o{ ARTICLE : "enriches core_rank by title match"

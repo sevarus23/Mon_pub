@@ -44,8 +44,9 @@ export default function Sidebar({ stats, onQuartileClick, globalMode }: SidebarP
   return (
     <aside className="space-y-4">
       {/* Year distribution chart */}
-      <div className="bg-white rounded-card p-5 shadow-card">
-        <h3 className="text-sm font-semibold text-text mb-3">
+      <div className="bg-white rounded-[10px] p-5 shadow-card">
+        <h3 className="text-sm font-semibold text-text mb-3 flex items-center gap-2">
+          <span className="w-1 h-4 bg-primary rounded-full"></span>
           Распределение по годам
         </h3>
         {stats ? (
@@ -60,23 +61,30 @@ export default function Sidebar({ stats, onQuartileClick, globalMode }: SidebarP
       </div>
 
       {/* Quartile cards */}
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="bg-white rounded-[10px] p-5 shadow-card">
+        <h3 className="text-sm font-semibold text-text mb-3 flex items-center gap-2">
+          <span className="w-1 h-4 bg-quartile-q1 rounded-full"></span>
+          Квартили
+        </h3>
+        <div className="grid grid-cols-2 gap-2.5">
         {(["Q1", "Q2", "Q3", "Q4"] as const).map((q) => (
           <button
             key={q}
             onClick={() => onQuartileClick?.(q)}
-            className={`bg-white rounded-card py-3 px-4 shadow-card border-l-[3px] ${Q_COLORS[q]} flex flex-col items-center transition-all hover:shadow-card-hover cursor-pointer`}
+            className={`bg-surface-secondary rounded-lg py-3 px-4 border-l-[3px] ${Q_COLORS[q]} flex flex-col items-center transition-all hover:shadow-md cursor-pointer`}
           >
             <span className="text-lg font-bold">{qCounts[q] ?? 0}</span>
             <span className="text-xs text-text-muted">{q}</span>
           </button>
         ))}
+        </div>
       </div>
 
       {/* Top journals */}
       {stats && stats.top_journals.length > 0 && (
-        <div className="bg-white rounded-card p-5 shadow-card">
-          <h3 className="text-sm font-semibold text-text mb-3">
+        <div className="bg-white rounded-[10px] p-5 shadow-card">
+          <h3 className="text-sm font-semibold text-text mb-3 flex items-center gap-2">
+            <span className="w-1 h-4 bg-accent rounded-full"></span>
             Топ журналов
           </h3>
           <ul className="space-y-2">

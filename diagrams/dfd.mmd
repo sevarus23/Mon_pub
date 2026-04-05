@@ -4,6 +4,8 @@ flowchart TB
         OA["🔗 OpenAlex API\nROR: 02b7jh107\n200/page, cursor"]
         SJR["📄 SJR CSV\nscimagojr_2024.csv"]
         SCOPUS["📄 Scopus Index\nscopus_issns.json"]
+        WL["🔗 Белый список МОН\njournalrank.rcsi.science\nISSN → Level 1-4"]
+        CORE["📄 CORE Rankings\nportal.core.edu.au\n987 конференций"]
     end
 
     subgraph BACKEND["⚙️ Backend — FastAPI"]
@@ -18,6 +20,8 @@ flowchart TB
             UQ["update_quartiles\nISSN → Q1/Q2/Q3/Q4"]
             NT["normalize_types\nTYPE_MAPPING → 7 категорий"]
             BT["backfill_topics\nOpenAlex DOI lookup\n→ topics[]"]
+            UWL["update_white_list\nISSN → Level 1-4\nJSON cache"]
+            UCR["update_core_ranks\nfuzzy title match\nJSON cache"]
         end
 
         subgraph REPO["ArticleRepository"]
@@ -25,83 +29,88 @@ flowchart TB
             GF["get_filtered\npg_trgm + tsvector FTS\nstemming + fuzzy"]
             GS["get_stats\nагрегация: по годам,\nисточникам, журналам"]
             EXP["export_xlsx / export_csv\nStreamingResponse"]
+            ST["sources_table\njournal aggregation"]
+            CT["conferences_table\nCORE rank aggregation"]
         end
 
         subgraph ENDPOINTS["REST API"]
-            E1["GET /api/articles\nпоиск + фильтры + topic\n+ пагинация"]
-            E2["GET /api/articles/stats\nстатистика"]
-            E3["GET /api/articles/openalex-search\nглобальный поиск\n+ institution filter"]
+            E1["GET /api/articles\nпоиск + фильтры + topic\n+ white_list + core_rank"]
+            E2["GET /api/articles/stats"]
+            E3["GET /api/articles/openalex-search\n+ institution filter"]
             E4["POST /api/articles/parse"]
-            E5["POST /api/articles/update-quartiles"]
-            E6["POST /api/articles/normalize-types"]
             E7["GET /api/articles/export\nformat=xlsx|csv"]
-            E8["GET /api/articles/topics\nsearch autocomplete"]
-            E9["POST /api/articles/backfill-topics"]
+            E8["GET /api/articles/topics"]
+            E10["GET /api/articles/sources-table"]
+            E11["GET /api/articles/conferences-table"]
+            E12["POST /update-white-list"]
+            E13["POST /update-core-ranks"]
         end
     end
 
     subgraph DB["🗄️ PostgreSQL 16"]
-        ARTICLES[("articles\npg_trgm + tsvector\ntopics TEXT[]\nGIN + B-tree indexes")]
+        ARTICLES[("articles\npg_trgm + tsvector\ntopics[] + white_list_level\n+ core_rank\nGIN + B-tree indexes")]
     end
 
     subgraph FRONT["🖥️ Frontend — Next.js 14"]
-        HEADER["Header\ntotal, new today/week/month"]
-        FILTERS["Filters + Autocomplete\nsearch, journal, type, topic,\ndate, quartile, institution"]
-        LIST["ArticleList\nкарточки + topic badges"]
-        SIDEBAR["Sidebar\nграфик по годам,\nквартили, top журналы"]
-        EXPORT["Кнопки XLSX / CSV\nскачивание с фильтрами"]
+        direction LR
+        TAB1["Публикации\nкарточки + badges\n+ per_page + export"]
+        TAB2["Источники\nтаблица журналов\nScopus + Белый список"]
+        TAB3["Конференции\nтаблица + CORE ranks\nA* / A / B / C"]
+        SIDEBAR["Sidebar\nграфик + квартили\n+ top журналы"]
     end
 
     USER(("👤 Пользователь"))
 
-    %% Ingestion flow
+    %% Ingestion
     SCHED -->|"запуск"| PC
     SCHED -->|"параллельно"| PO
-    CR -->|"JSON response"| PC
-    OA -->|"JSON response"| PO
-    PC -->|"articles[] + topics"| BU
-    PO -->|"articles[] + topics"| BU
+    CR -->|"JSON"| PC
+    OA -->|"JSON"| PO
+    PC -->|"articles[]"| BU
+    PO -->|"articles[]"| BU
     BU -->|"INSERT"| ARTICLES
 
-    %% Enrichment flow
-    SCHED -->|"после парсинга"| UQ
-    SCHED -->|"после парсинга"| NT
-    SJR -->|"CSV read"| UQ
+    %% Enrichment
+    SJR -->|"CSV"| UQ
     UQ -->|"UPDATE quartile"| ARTICLES
     NT -->|"UPDATE type"| ARTICLES
-    OA -->|"DOI batch lookup"| BT
+    OA -->|"DOI lookup"| BT
     BT -->|"UPDATE topics"| ARTICLES
+    WL -->|"API / cache"| UWL
+    UWL -->|"UPDATE white_list_level"| ARTICLES
+    CORE -->|"JSON cache"| UCR
+    UCR -->|"UPDATE core_rank"| ARTICLES
 
-    %% Manual triggers
-    E4 -->|"background task"| SCHED
-    E5 -->|"background task"| UQ
-    E6 -->|"background task"| NT
-    E9 -->|"background task"| BT
+    %% Triggers
+    E4 -->|"background"| SCHED
+    E12 -->|"sync"| UWL
+    E13 -->|"sync"| UCR
 
-    %% Query flow
-    ARTICLES -->|"SELECT"| GF
-    ARTICLES -->|"SELECT"| GS
-    ARTICLES -->|"SELECT"| EXP
-    SCOPUS -->|"ISSN filter"| GF
-    GF -->|"results"| E1
-    GS -->|"stats"| E2
-    EXP -->|"file"| E7
-    GF -->|"topics"| E8
-    OA -->|"real-time + institution"| E3
+    %% Query
+    ARTICLES --> GF
+    ARTICLES --> GS
+    ARTICLES --> EXP
+    ARTICLES --> ST
+    ARTICLES --> CT
+    GF --> E1
+    GS --> E2
+    EXP --> E7
+    ST --> E10
+    CT --> E11
+    OA -->|"real-time"| E3
 
-    %% Frontend flow
-    E1 -->|"JSON"| LIST
-    E1 -->|"JSON"| FILTERS
-    E2 -->|"JSON"| HEADER
-    E2 -->|"JSON"| SIDEBAR
-    E3 -->|"JSON"| LIST
-    E7 -->|"file download"| EXPORT
-    E8 -->|"JSON"| FILTERS
+    %% Frontend
+    E1 --> TAB1
+    E2 --> SIDEBAR
+    E10 --> TAB2
+    E11 --> TAB3
+    E7 --> TAB1
+    E3 --> TAB1
 
-    USER -->|"поиск и фильтры"| FILTERS
-    USER -->|"просмотр"| LIST
-    USER -->|"аналитика"| SIDEBAR
-    USER -->|"скачивание"| EXPORT
+    USER --> TAB1
+    USER --> TAB2
+    USER --> TAB3
+    USER --> SIDEBAR
 
     %% Styling
     classDef ext fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
@@ -110,8 +119,8 @@ flowchart TB
     classDef front fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef user fill:#fce4ec,stroke:#c62828,stroke-width:2px
 
-    class CR,OA,SJR,SCOPUS ext
-    class PC,PO,UQ,NT,BT,BU,GF,GS,EXP,SCHED svc
+    class CR,OA,SJR,SCOPUS,WL,CORE ext
+    class PC,PO,UQ,NT,BT,UWL,UCR,BU,GF,GS,EXP,ST,CT,SCHED svc
     class ARTICLES db
-    class HEADER,FILTERS,LIST,SIDEBAR,EXPORT front
+    class TAB1,TAB2,TAB3,SIDEBAR front
     class USER user

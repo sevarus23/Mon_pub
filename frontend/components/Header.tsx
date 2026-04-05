@@ -11,22 +11,22 @@ export default function Header({ stats, globalMode }: HeaderProps) {
   const today = new Date().toLocaleDateString("ru-RU");
 
   return (
-    <header className="bg-white border-b border-surface-border shadow-header">
-      <div className="max-w-[1280px] mx-auto px-5 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
+    <header className="bg-gradient-to-r from-primary-800 to-primary text-white shadow-lg">
+      <div className="max-w-[1280px] mx-auto px-6 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="text-center md:text-left">
-          <h1 className="text-xl font-bold text-primary">
+          <h1 className="text-xl font-bold tracking-tight">
             Публикационная активность сотрудников
           </h1>
-          <p className="text-xs text-text-muted mt-1">
+          <p className="text-xs text-primary-100 mt-1">
             Данные на {today}
           </p>
         </div>
         {globalMode ? (
-          <div className="text-xs text-primary bg-primary-50 px-3 py-1.5 rounded-full font-medium">
+          <div className="text-xs text-white bg-white/20 px-3 py-1.5 rounded-full font-medium">
             Глобальный поиск OpenAlex
           </div>
         ) : (
-          <div className="flex gap-6 items-center">
+          <div className="flex gap-3 items-center">
             <StatBox
               value={stats?.total ?? 0}
               label={
@@ -49,9 +49,9 @@ function StatBox({ value, label }: { value: number | string; label: string }) {
   const formatted =
     typeof value === "number" ? value.toLocaleString("ru-RU") : value;
   return (
-    <div className="text-center">
+    <div className="bg-white rounded-[10px] shadow-card px-5 py-3 text-center min-w-[90px]">
       <div className="text-2xl font-bold text-primary">{formatted}</div>
-      <div className="text-xs text-text-secondary">{label}</div>
+      <div className="text-[0.65rem] text-text-muted">{label}</div>
     </div>
   );
 }

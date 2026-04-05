@@ -14,7 +14,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
 
   return (
     <div
-      className={`bg-white rounded-card py-4 px-5 shadow-card border-l-[3px] transition-all relative hover:shadow-card-hover ${
+      className={`bg-white rounded-[10px] py-4 px-5 shadow-card border-l-[3px] transition-all relative hover:shadow-card-hover ${
         isNew ? "border-l-accent" : "border-l-transparent hover:border-l-primary"
       }`}
     >
@@ -45,18 +45,20 @@ export default function ArticleCard({ article }: ArticleCardProps) {
         {article.authors}
       </p>
 
-      {/* Meta row */}
-      <div className="flex flex-wrap gap-3 items-center text-xs text-text-muted">
+      {/* Meta: journal + date */}
+      <div className="flex flex-wrap gap-2 items-center mt-3 text-xs text-text-muted">
         {article.journal_name && (
           <span className="italic text-text-secondary">
             {article.journal_name}
           </span>
         )}
-
         <span className={isFutureDate(article.published_at) ? "text-amber-500" : ""} title={isFutureDate(article.published_at) ? "Дата из будущего — вероятно ошибка источника" : ""}>
           {formatDate(article.published_at)}
         </span>
+      </div>
 
+      {/* Badges row */}
+      <div className="flex flex-wrap gap-1.5 mt-2">
         {article.quartile && (
           <span className={`inline-block py-0.5 px-2 rounded text-xs font-bold text-white ${qClass}`}>
             {article.quartile}
@@ -84,14 +86,14 @@ export default function ArticleCard({ article }: ArticleCardProps) {
             href={`https://doi.org/${article.doi}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary hover:underline"
+            className="text-primary hover:underline text-xs"
           >
             DOI
           </a>
         )}
 
         {article.cited_by_count != null && (
-          <span className="inline-flex items-center gap-1 bg-surface-secondary py-0.5 px-2 rounded text-text-secondary">
+          <span className="inline-flex items-center gap-1 bg-surface-secondary py-0.5 px-2 rounded text-text-secondary text-xs">
             {article.cited_by_count} цит.
           </span>
         )}

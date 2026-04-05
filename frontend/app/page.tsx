@@ -25,6 +25,8 @@ const DEFAULT_FILTERS: FiltersType = {
   white_list_only: false,
   core_rank: "",
   iu_only: true,
+  hide_numeric_titles: true,
+  hide_without_doi: false,
   institution: "",
   sort_by: "published_at",
   sort_order: "desc",
@@ -46,6 +48,8 @@ function filtersFromParams(params: URLSearchParams): FiltersType {
     white_list_only: params.get("white_list_only") === "true",
     core_rank: params.get("core_rank") || "",
     iu_only: params.get("iu_only") !== "false",
+    hide_numeric_titles: params.get("hide_numeric_titles") !== "false",
+    hide_without_doi: params.get("hide_without_doi") === "true",
     institution: params.get("institution") || "",
     sort_by: params.get("sort_by") || "published_at",
     sort_order: params.get("sort_order") || "desc",
@@ -68,6 +72,8 @@ function filtersToParams(f: FiltersType): string {
   if (f.white_list_only) sp.set("white_list_only", "true");
   if (f.core_rank) sp.set("core_rank", f.core_rank);
   if (!f.iu_only) sp.set("iu_only", "false");
+  if (!f.hide_numeric_titles) sp.set("hide_numeric_titles", "false");
+  if (f.hide_without_doi) sp.set("hide_without_doi", "true");
   if (f.institution) sp.set("institution", f.institution);
   if (f.sort_by && f.sort_by !== "published_at") sp.set("sort_by", f.sort_by);
   if (f.sort_order && f.sort_order !== "desc") sp.set("sort_order", f.sort_order);
@@ -141,6 +147,15 @@ function HomeContent() {
           sort_order: f.sort_order || undefined,
           institution: f.institution || undefined,
         });
+      }
+      // Client-side filtering for global OpenAlex results
+      if (!f.iu_only) {
+        const filtered = data.items.filter((a) => {
+          if (f.hide_numeric_titles && /^\d+$/.test(a.title.trim())) return false;
+          if (f.hide_without_doi && !a.doi) return false;
+          return true;
+        });
+        data = { ...data, items: filtered };
       }
       setArticles(data);
     } catch (e) {

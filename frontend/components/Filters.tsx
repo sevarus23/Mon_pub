@@ -70,6 +70,7 @@ export default function Filters({
     filters.white_list_only,
     filters.core_rank,
     filters.institution,
+    filters.hide_without_doi,
   ].filter(Boolean).length;
 
   return (
@@ -87,9 +88,29 @@ export default function Filters({
             <span className="text-sm font-medium text-text">Только Innopolis University</span>
           </label>
           {!filters.iu_only && (
-            <span className="text-xs text-primary bg-primary-50 px-2 py-0.5 rounded-full">
-              Глобальный поиск OpenAlex
-            </span>
+            <>
+              <span className="text-xs text-primary bg-primary-50 px-2 py-0.5 rounded-full">
+                Глобальный поиск OpenAlex
+              </span>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none ml-2">
+                <input
+                  type="checkbox"
+                  checked={filters.hide_numeric_titles}
+                  onChange={(e) => onChange({ hide_numeric_titles: e.target.checked })}
+                  className="w-3.5 h-3.5 accent-primary rounded"
+                />
+                <span className="text-xs text-text-secondary">Скрыть числовые названия</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={filters.hide_without_doi}
+                  onChange={(e) => onChange({ hide_without_doi: e.target.checked })}
+                  className="w-3.5 h-3.5 accent-primary rounded"
+                />
+                <span className="text-xs text-text-secondary">Только с DOI</span>
+              </label>
+            </>
           )}
         </div>
 
@@ -222,6 +243,9 @@ export default function Filters({
             )}
             {filters.institution && (
               <Chip label={`Институция: ${filters.institution}`} onRemove={() => onChange({ institution: "" })} />
+            )}
+            {filters.hide_without_doi && (
+              <Chip label="Только с DOI" onRemove={() => onChange({ hide_without_doi: false })} />
             )}
           </div>
         )}

@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 import openpyxl
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -276,6 +276,15 @@ async def mark_scopus_from_file(
 
     logger.info("Scopus file parsed: %d entries", len(entries))
 
+    # Reset previous Scopus import: remove scopus-sourced articles and clear in_scopus flags
+    await session.execute(
+        update(Article).where(Article.in_scopus == True).values(in_scopus=False)  # noqa: E712
+    )
+    deleted = (await session.execute(
+        text("DELETE FROM articles WHERE source = 'scopus'")
+    )).rowcount
+    logger.info("Reset: cleared in_scopus flags, deleted %d scopus-sourced articles", deleted)
+
     # Build lookup indexes from the file
     doi_entries: dict[str, ScopusEntry] = {}
     title_year_entries: dict[tuple[str, int], ScopusEntry] = {}
@@ -283,7 +292,10 @@ async def mark_scopus_from_file(
         if e.doi:
             doi_entries[e.doi] = e
         if e.norm_title and e.year:
-            title_year_entries[(e.norm_title, e.year)] = e
+            # Add ±1 year to handle Scopus vs CrossRef/OpenAlex date discrepancies
+            # (Scopus uses journal issue year, others use online publication date)
+            for y in (e.year - 1, e.year, e.year + 1):
+                title_year_entries[(e.norm_title, y)] = e
 
     matched_by_doi = 0
     matched_by_title = 0

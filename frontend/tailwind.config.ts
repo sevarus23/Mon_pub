@@ -5,6 +5,7 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./lib/**/*.{js,ts,jsx,tsx,mdx}",
+    "./types/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -42,7 +43,7 @@ const config: Config = {
           q1: "#2e7d32",
           q2: "#1565c0",
           q3: "#e65100",
-          q4: "#546e7a",
+          q4: "#455a64",
         },
         type: {
           bg: "#eef0f9",

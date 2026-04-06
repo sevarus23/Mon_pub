@@ -114,7 +114,7 @@ export default function SourcesTable() {
           <div className="text-xs text-text-muted">{"В Белом списке\nМОН РФ"}</div>
         </div>
         <div className="ml-auto self-center text-[0.65rem] text-text-muted italic">
-          Scopus: обновлён 01.2024 &nbsp;|&nbsp; Белый список МОН: обновлён 05.04.2026
+          Scopus: обновлён 02.2026 &nbsp;|&nbsp; Белый список МОН: обновлён 05.04.2026
         </div>
       </div>
 

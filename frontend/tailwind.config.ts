@@ -42,7 +42,7 @@ const config: Config = {
           q1: "#2e7d32",
           q2: "#1565c0",
           q3: "#e65100",
-          q4: "#78909c",
+          q4: "#546e7a",
         },
         type: {
           bg: "#eef0f9",

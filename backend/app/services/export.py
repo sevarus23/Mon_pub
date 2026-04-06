@@ -28,7 +28,20 @@ COLUMNS = [
 ]
 
 
+def _is_in_scopus(article: Article) -> bool:
+    """Check if article is in Scopus: direct flag OR ISSN in Scopus index."""
+    if getattr(article, "in_scopus", False):
+        return True
+    issn = getattr(article, "issn", None)
+    if issn:
+        from app.utils.scopus import get_scopus_issns
+        return issn in get_scopus_issns()
+    return False
+
+
 def _cell_value(article: Article, field: str):
+    if field == "in_scopus":
+        return "Да" if _is_in_scopus(article) else "Нет"
     val = getattr(article, field, None)
     if val is None:
         return ""

@@ -13,12 +13,12 @@ erDiagram
         varchar publisher "nullable"
         int cited_by_count "nullable"
         varchar language "nullable"
-        varchar source "NOT NULL"
+        varchar source "NOT NULL crossref|openalex|scopus"
         text_arr topics "DEFAULT empty"
         int white_list_level "nullable 1-4"
         varchar core_rank "nullable A* A B C"
         bool in_scopus "DEFAULT false"
-        tsvector search_vector "GENERATED"
+        tsvector search_vector "GENERATED title+authors"
         timestamp created_at "DEFAULT NOW"
         timestamp updated_at "ON UPDATE"
     }
@@ -37,19 +37,20 @@ erDiagram
 
     SJR_RANKINGS {
         string file "scimagojr_2024.csv"
-        string mapping "ISSN to Quartile"
+        string mapping "ISSN to Quartile Q1-Q4"
     }
 
-    SCOPUS_INDEX {
+    SCOPUS_ISSN_INDEX {
         string file "scopus_issns.json"
-        string content "ISSN whitelist Feb 2026"
+        string content "74400 ISSN Feb 2026"
+        string purpose "runtime filter for scopus_only"
     }
 
-    SCOPUS_IMPORT {
+    SCOPUS_FILE_IMPORT {
         string endpoint "POST upload-scopus"
         string format "XLSX or CSV"
         string matching "DOI then title+year"
-        string action "mark + create new"
+        string action "set in_scopus=true and create missing"
     }
 
     WHITE_LIST_MON {
@@ -67,7 +68,7 @@ erDiagram
     CROSSREF_API ||--o{ ARTICLE : "ingests via parse_crossref"
     OPENALEX_API ||--o{ ARTICLE : "ingests via parse_openalex"
     SJR_RANKINGS ||--o{ ARTICLE : "enriches quartile by ISSN"
-    SCOPUS_INDEX ||--o{ ARTICLE : "filters by ISSN membership"
-    SCOPUS_IMPORT ||--o{ ARTICLE : "marks in_scopus + creates missing"
+    SCOPUS_ISSN_INDEX ||--o{ ARTICLE : "runtime filter scopus_only by ISSN"
+    SCOPUS_FILE_IMPORT ||--o{ ARTICLE : "sets in_scopus=true + creates missing"
     WHITE_LIST_MON ||--o{ ARTICLE : "enriches white_list_level by ISSN"
     CORE_RANKINGS ||--o{ ARTICLE : "enriches core_rank by title match"

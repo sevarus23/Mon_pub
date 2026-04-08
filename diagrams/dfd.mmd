@@ -1,132 +1,112 @@
+---
+config:
+  flowchart:
+    curve: stepline
+    nodeSpacing: 35
+    rankSpacing: 45
+    padding: 15
+    wrappingWidth: 150
+---
 flowchart TB
-    subgraph EXT["Внешние источники"]
-        CR["🔗 CrossRef API\naffiliation=Innopolis\n100/page, offset"]
-        OA["🔗 OpenAlex API\nROR: 02b7jh107\n200/page, cursor"]
-        SJR["📄 SJR CSV\nscimagojr_2024.csv"]
-        SCOPUS["📄 Scopus Index\nscopus_issns.json"]
-        WL["🔗 Белый список МОН\njournalrank.rcsi.science\nISSN → Level 1-4"]
-        CORE["📄 CORE Rankings\nportal.core.edu.au\n987 конференций"]
-        SCFILE["📤 Scopus Export\nXLSX/CSV upload\nDOI + title+year matching"]
-    end
-
-    subgraph BACKEND["⚙️ Backend — FastAPI"]
-        SCHED["⏰ APScheduler\nкаждые 24 часа"]
-
-        subgraph PARSE["Сервисы парсинга"]
-            PC["parse_crossref\nHTTP + tenacity retry\nфильтр ignored DOIs\n+ subject → topics"]
-            PO["parse_openalex\nHTTP async\nфильтр affiliation + год ≥ 2012\n+ topics/concepts"]
-        end
-
-        subgraph ENRICH["Обогащение данных"]
-            UQ["update_quartiles\nISSN → Q1/Q2/Q3/Q4"]
-            NT["normalize_types\nTYPE_MAPPING → 7 категорий"]
-            BT["backfill_topics\nOpenAlex DOI lookup\n→ topics[]"]
-            UWL["update_white_list\nISSN → Level 1-4\nJSON cache"]
-            UCR["update_core_ranks\nfuzzy title match\nJSON cache"]
-            USI["scopus_import\nmark in_scopus=true\n+ create missing articles"]
-        end
-
-        subgraph REPO["ArticleRepository"]
-            BU["bulk_upsert\nON CONFLICT DO NOTHING\nпо DOI или num_id"]
-            GF["get_filtered\npg_trgm + tsvector FTS\nstemming + fuzzy"]
-            GS["get_stats\nагрегация: по годам,\nисточникам, журналам"]
-            EXP["export_xlsx / export_csv\nStreamingResponse"]
-            ST["sources_table\njournal aggregation"]
-            CT["conferences_table\nCORE rank aggregation"]
-        end
-
-        subgraph ENDPOINTS["REST API"]
-            E1["GET /api/articles\nпоиск + фильтры + topic\n+ white_list + core_rank"]
-            E2["GET /api/articles/stats"]
-            E3["GET /api/articles/openalex-search\n+ institution filter"]
-            E4["POST /api/articles/parse"]
-            E7["GET /api/articles/export\nformat=xlsx|csv"]
-            E8["GET /api/articles/topics"]
-            E10["GET /api/articles/sources-table"]
-            E11["GET /api/articles/conferences-table"]
-            E12["POST /update-white-list"]
-            E13["POST /update-core-ranks"]
-            E14["POST /upload-scopus\nXLSX/CSV → mark + create"]
-        end
-    end
-
-    subgraph DB["🗄️ PostgreSQL 16"]
-        ARTICLES[("articles\npg_trgm + tsvector\ntopics[] + white_list_level\n+ core_rank\nGIN + B-tree indexes")]
-    end
-
-    subgraph FRONT["🖥️ Frontend — Next.js 14"]
+    %% ========== СЛОЙ 1: Источники данных ==========
+    subgraph SRC["Внешние источники данных"]
         direction LR
-        TAB1["Публикации\nкарточки + badges\n+ per_page + export"]
-        TAB2["Источники\nтаблица журналов\nScopus + Белый список"]
-        TAB3["Конференции\nтаблица + CORE ranks\nA* / A / B / C"]
-        SIDEBAR["Sidebar\nграфик + квартили\n+ top журналы"]
+        E1["<b>E1</b>\nCrossRef API"]
+        E2["<b>E2</b>\nOpenAlex API"]
     end
 
-    USER(("👤 Пользователь"))
+    %% ========== СЛОЙ 2: Парсинг ==========
+    subgraph PARSE["Загрузка"]
+        direction LR
+        P1(["<b>1.0</b>\nПарсинг\nCrossRef"])
+        P2(["<b>2.0</b>\nПарсинг\nOpenAlex"])
+        P3(["<b>3.0</b>\nДедупликация\nи вставка"])
+    end
 
-    %% Ingestion
-    SCHED -->|"запуск"| PC
-    SCHED -->|"параллельно"| PO
-    CR -->|"JSON"| PC
-    OA -->|"JSON"| PO
-    PC -->|"articles[]"| BU
-    PO -->|"articles[]"| BU
-    BU -->|"INSERT"| ARTICLES
+    E1 -->|"articles JSON"| P1
+    E2 -->|"works JSON"| P2
+    P1 -->|"ArticleCreate[]"| P3
+    P2 -->|"ArticleCreate[]\n+ topics"| P3
 
-    %% Enrichment
-    SJR -->|"CSV"| UQ
-    UQ -->|"UPDATE quartile"| ARTICLES
-    NT -->|"UPDATE type"| ARTICLES
-    OA -->|"DOI lookup"| BT
-    BT -->|"UPDATE topics"| ARTICLES
-    WL -->|"API / cache"| UWL
-    UWL -->|"UPDATE white_list_level"| ARTICLES
-    CORE -->|"JSON cache"| UCR
-    UCR -->|"UPDATE core_rank"| ARTICLES
+    %% ========== СЛОЙ 3: Хранилище ==========
+    D1[("<b>D1</b> articles — PostgreSQL 16\npg_trgm + tsvector + GIN")]
 
-    %% Triggers
-    E4 -->|"background"| SCHED
-    E12 -->|"sync"| UWL
-    E13 -->|"sync"| UCR
-    SCFILE -->|"file upload"| USI
-    USI -->|"mark + INSERT"| ARTICLES
-    E14 -->|"sync"| USI
+    P3 -->|"INSERT\nON CONFLICT DO NOTHING"| D1
 
-    %% Query
-    ARTICLES --> GF
-    ARTICLES --> GS
-    ARTICLES --> EXP
-    ARTICLES --> ST
-    ARTICLES --> CT
-    GF --> E1
-    GS --> E2
-    EXP --> E7
-    ST --> E10
-    CT --> E11
-    OA -->|"real-time"| E3
+    %% ========== СЛОЙ 4: Обогащение ==========
+    subgraph ENRICH["Обогащение данных"]
+        direction LR
+        P4(["<b>4.0</b>\nКвартили\nSJR"])
+        P5(["<b>5.0</b>\nНормализация\nтипов"])
+        P6(["<b>6.0</b>\nТемы\nOpenAlex"])
+        P7(["<b>7.0</b>\nБелый список\nМОН"])
+        P8(["<b>8.0</b>\nCORE\nранги"])
+    end
 
-    %% Frontend
-    E1 --> TAB1
-    E2 --> SIDEBAR
-    E10 --> TAB2
-    E11 --> TAB3
-    E7 --> TAB1
-    E3 --> TAB1
+    subgraph EDATA["Справочники обогащения"]
+        direction LR
+        E3["<b>E3</b>\nSJR CSV"]
+        E4["<b>E4</b>\nМОН API"]
+        E5["<b>E5</b>\nCORE JSON"]
+    end
 
-    USER --> TAB1
-    USER --> TAB2
-    USER --> TAB3
-    USER --> SIDEBAR
+    D1 <-->|"UPDATE quartile"| P4
+    D1 <-->|"UPDATE type"| P5
+    D1 <-->|"UPDATE topics"| P6
+    D1 <-->|"UPDATE\nwhite_list_level"| P7
+    D1 <-->|"UPDATE core_rank"| P8
 
-    %% Styling
-    classDef ext fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
-    classDef svc fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    classDef db fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-    classDef front fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef user fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    E3 -->|"ISSN→Q1-Q4"| P4
+    E2 -->|"DOI lookup"| P6
+    E4 -->|"ISSN→Level"| P7
+    E5 -->|"title→rank"| P8
 
-    class CR,OA,SJR,SCOPUS,WL,CORE,SCFILE ext
-    class PC,PO,UQ,NT,BT,UWL,UCR,USI,BU,GF,GS,EXP,ST,CT,SCHED svc
-    class ARTICLES db
-    class TAB1,TAB2,TAB3,SIDEBAR front
-    class USER user
+    %% ========== СЛОЙ 5: Scopus ==========
+    subgraph SCOPUS["Scopus"]
+        direction LR
+        E6["<b>E6</b>\nScopus Export\nXLSX/CSV"]
+        P9(["<b>9.0</b>\nИмпорт Scopus\nDOI + title±1yr"])
+        D2[("<b>D2</b> scopus_issns.json\n74 400 ISSN")]
+    end
+
+    E6 -->|"файл с\nпубликациями"| P9
+    P9 <-->|"SET in_scopus=true\n+ INSERT missing"| D1
+
+    %% ========== СЛОЙ 6: Запросы ==========
+    subgraph QUERY["Обработка запросов"]
+        direction LR
+        P10(["<b>10.0</b>\nПоиск\nи фильтрация"])
+        P11(["<b>11.0</b>\nАгрегация\nстатистики"])
+        P12(["<b>12.0</b>\nЭкспорт\nXLSX/CSV"])
+    end
+
+    D1 -->|"SELECT"| P10
+    D1 -->|"GROUP BY"| P11
+    D1 -->|"SELECT all"| P12
+    D2 -->|"ISSN set\nдля scopus_only"| P10
+    D2 -->|"ISSN set"| P11
+    D2 -->|"ISSN set\nдля колонки\nВ Scopus"| P12
+
+    %% ========== СЛОЙ 7: Пользователь ==========
+    E7["<b>E7</b>\nПользователь"]
+
+    E7 -->|"поиск, фильтры"| P10
+    E7 -->|"параметры"| P11
+    E7 -->|"запрос экспорта"| P12
+    E7 -->|"загрузка файла"| P9
+    P10 -->|"публикации"| E7
+    P11 -->|"статистика"| E7
+    P12 -->|"файл"| E7
+
+    %% ========== СТИЛИ ==========
+    classDef entity fill:#dce8f5,stroke:#2962a8,stroke-width:2px,color:#1a3a5c
+    classDef store fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1b5e20
+    classDef process fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#bf360c
+    classDef user fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c
+    classDef groupbox fill:#fafafa,stroke:#bdbdbd,stroke-width:1px
+
+    class E1,E2,E3,E4,E5,E6 entity
+    class D1,D2 store
+    class P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,P12 process
+    class E7 user
+    class SRC,PARSE,ENRICH,EDATA,SCOPUS,QUERY groupbox

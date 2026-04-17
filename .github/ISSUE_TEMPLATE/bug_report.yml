@@ -1,0 +1,56 @@
+name: Баг-репорт
+description: Сообщить о неработающей функциональности
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за репорт! Заполни поля ниже — это ускорит разбор.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Что происходит
+      description: Кратко опиши проблему
+      placeholder: При клике на «Экспорт» страница падает с 500
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+      placeholder: |
+        1. Открыть /mon_pub
+        2. Ввести в поиск "machine learning"
+        3. Нажать "Экспорт в CSV"
+        4. Увидеть ошибку
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+      placeholder: Должен скачаться CSV-файл
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Окружение
+      description: Браузер / ОС / где запущено (прод / локально)
+      placeholder: Chrome 122, macOS 14, прод https://tend-ai.ru/mon_pub
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи / скриншоты
+      description: Если есть — вставь текстом или перетащи картинку
+      render: shell
+    validations:
+      required: false

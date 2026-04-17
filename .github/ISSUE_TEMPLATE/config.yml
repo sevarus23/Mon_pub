@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Вопрос по использованию
+    url: https://github.com/sevarus23/Mon_pub/discussions
+    about: Для общих вопросов используй Discussions, а не issues.

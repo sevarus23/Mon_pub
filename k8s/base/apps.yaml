@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mon-backend
+  namespace: mon-pub
+spec:
+  ports:
+    - port: 8001
+      targetPort: 8001
+  selector:
+    app: mon-backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mon-backend
+  namespace: mon-pub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mon-backend
+  template:
+    metadata:
+      labels:
+        app: mon-backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/sevarus23/mon-pub-backend:latest
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: mon-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mon-db-secret
+                  key: POSTGRES_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mon-frontend
+  namespace: mon-pub
+spec:
+  ports:
+    - port: 3000
+      targetPort: 3000
+  selector:
+    app: mon-frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mon-frontend
+  namespace: mon-pub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mon-frontend
+  template:
+    metadata:
+      labels:
+        app: mon-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/sevarus23/mon-pub-frontend:latest
+          ports:
+            - containerPort: 3000

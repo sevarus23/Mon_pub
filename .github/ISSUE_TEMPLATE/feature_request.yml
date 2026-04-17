@@ -1,0 +1,37 @@
+name: Предложение фичи
+description: Предложить новую функциональность или улучшение
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему решает
+      description: Опиши контекст и боль пользователя
+      placeholder: При работе с большим списком статей нельзя быстро отфильтровать по году
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое решение
+      placeholder: Добавить слайдер "Год публикации от-до" в панель фильтров
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы, которые рассматривал
+      placeholder: Можно было добавить два отдельных инпута, но слайдер наглядней
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Дополнительный контекст
+      description: Ссылки, макеты, примеры из других сервисов
+    validations:
+      required: false

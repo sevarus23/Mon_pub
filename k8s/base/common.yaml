@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mon-pub
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mon-db-secret
+  namespace: mon-pub
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: password # User should change this
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mon-config
+  namespace: mon-pub
+data:
+  POSTGRES_HOST: mon-db
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: iu_parsers
+  POSTGRES_DB: iu_parsers
+  NEXT_PUBLIC_API_URL: /mon_pub

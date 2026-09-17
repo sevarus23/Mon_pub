@@ -3,14 +3,14 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 import json
+from app.services.white_list import _extract_latest_level
 
 
 class TestFetchLevel:
     """Test _fetch_level logic."""
 
     def _extract_level(self, data: dict) -> int | None:
-        """Replicate the level extraction logic from white_list.py."""
-        return data.get("level_2025") or data.get("level_2023")
+        return _extract_latest_level(data)
 
     def test_level_2025_preferred(self):
         data = {"level_2023": 2, "level_2025": 1}

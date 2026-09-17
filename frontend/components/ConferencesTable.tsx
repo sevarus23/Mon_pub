@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getConferencesTable } from "@/lib/api";
-import type { ConferenceInfo } from "@/types";
+import { getConferencesTable, getReferenceData } from "@/lib/api";
+import type { ConferenceInfo, ReferenceData } from "@/types";
 import { getQuartileClass } from "@/types";
 
 const CORE_COLORS: Record<string, string> = {
@@ -21,6 +21,7 @@ export default function ConferencesTable() {
   const [conferences, setConferences] = useState<ConferenceInfo[]>([]);
   const [filtered, setFiltered] = useState<ConferenceInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [referenceData, setReferenceData] = useState<ReferenceData>({});
   const [search, setSearch] = useState("");
   const [rankFilter, setRankFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("article_count");
@@ -36,6 +37,9 @@ export default function ConferencesTable() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+    getReferenceData()
+      .then(setReferenceData)
+      .catch(() => setReferenceData({}));
   }, []);
 
   const sortData = useCallback(
@@ -125,7 +129,7 @@ export default function ConferencesTable() {
           </div>
         ))}
         <div className="ml-auto self-center text-[0.65rem] text-text-muted italic">
-          CORE Rankings: ICORE2026 &nbsp;|&nbsp; обновлён 05.04.2026
+          Рейтинг конференций: {referenceData.core?.version || "дата не определена"}
         </div>
       </div>
 

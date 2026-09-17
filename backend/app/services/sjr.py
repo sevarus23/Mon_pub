@@ -69,7 +69,8 @@ async def update_quartiles_from_csv(filepath: Path | None = None) -> int:
         for issn, quartile in issn_to_quartile.items():
             result = await session.execute(
                 update(Article)
-                .where(Article.issn == issn, Article.quartile.is_(None))
+                .where(Article.issn == issn)
+                .where((Article.quartile.is_(None)) | (Article.quartile != quartile))
                 .values(quartile=quartile)
             )
             updated += result.rowcount  # type: ignore[assignment]

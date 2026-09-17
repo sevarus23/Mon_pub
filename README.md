@@ -83,6 +83,8 @@ npm run dev
 
 ## API
 
+Актуальность справочников, источники и порядок обновления: [DATA_SOURCES.md](DATA_SOURCES.md).
+
 | Метод | Эндпоинт | Описание |
 |-------|----------|----------|
 | GET | `/api/articles` | Список статей с фильтрами, поиском, topic и пагинацией |
@@ -100,6 +102,7 @@ npm run dev
 | POST | `/api/articles/normalize-types` | Нормализация типов статей |
 | POST | `/api/articles/backfill-topics` | Обогащение существующих статей темами из OpenAlex |
 | GET | `/api/articles/sources-table` | Таблица источников (журналы с Scopus/Белый список) |
+| GET | `/api/articles/reference-data` | Версии, даты получения и статус актуальности справочников |
 | GET | `/api/articles/conferences-table` | Таблица конференций с CORE рангами |
 | POST | `/api/articles/update-white-list` | Обновление уровней Белого списка МОН РФ |
 | POST | `/api/articles/update-core-ranks` | Обновление CORE рангов конференций |
@@ -116,7 +119,7 @@ npm run dev
 
 ## Тестирование
 
-### Backend (210 тестов)
+### Backend
 
 ```bash
 cd backend
@@ -124,11 +127,11 @@ pip install -r requirements-test.txt
 pytest tests/ -v
 ```
 
-| Уровень | Что проверяется | Кол-во |
-|---------|----------------|--------|
-| `tests/unit/` | Парсинг, маппинг типов, SJR CSV, Pydantic-схемы, экспорт, topics, white list, CORE ranks, scopus | 159 |
-| `tests/api/` | Контракт HTTP-эндпоинтов (валидация, экспорт, topics, institution, white list, CORE, sources-table, conferences-table) | 44 |
-| `tests/service/` | Логика сервисов с мокированием HTTP через respx | 17 |
+| Уровень | Что проверяется |
+|---------|----------------|
+| `tests/unit/` | Парсинг, маппинг типов, SJR CSV, Pydantic-схемы, экспорт, topics, white list, CORE ranks, scopus, метаданные |
+| `tests/api/` | Контракт HTTP-эндпоинтов (валидация, экспорт, topics, institution, white list, CORE, sources-table, conferences-table) |
+| `tests/service/` | Логика сервисов с мокированием HTTP через respx |
 
 ### Frontend (31 тест)
 
@@ -145,6 +148,10 @@ npm test
 GitHub Actions автоматически запускает все тесты на каждый push и pull request в `main`.
 
 Branch Protection настроен так, что **мерж в main невозможен**, если хотя бы один тест не проходит.
+
+Также настроены публикация Docker-образов в GHCR и SSH/Compose-деплой. Связь этого
+деплоя с корпоративным доменом пока не подтверждена; состояние проверки Azure DevOps
+и границы подтверждённых фактов описаны в [DATA_SOURCES.md](DATA_SOURCES.md#cicd-и-корпоративный-домен).
 
 ## Версионирование
 

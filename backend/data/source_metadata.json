@@ -1,0 +1,58 @@
+{
+  "white_list": {
+    "title": "Белый список МОН РФ",
+    "version": "Уровни по 2026 год",
+    "as_of": "2026-04-07",
+    "retrieved_at": "2026-09-17T15:50:34.025844+00:00",
+    "url": "https://journalrank.rcsi.science/ru/record-sources/",
+    "download_url": "https://journalrank.rcsi.science/ru/record-sources/download/?dataType=Json",
+    "status": "current",
+    "note": "Используется последний утверждённый уровень; исключённые журналы не считаются включёнными.",
+    "records": 31576,
+    "issns": 52949,
+    "download_sha256": "fa71804337379e196f9635bf0f3c8643a0a9fffd4b2374aeb1aede4826541683",
+    "data_sha256": "2f523f96c6b3a06d4fda6a10e1818e0cf943c81b93729dbf7ec9f293950ef8f9",
+    "resolved_conflict_count": 2,
+    "resolved_conflicts": {
+      "2709-8028": 4,
+      "2709-8036": 4
+    }
+  },
+  "scopus": {
+    "title": "Scopus Source List",
+    "version": "Август 2026",
+    "as_of": "2026-08",
+    "retrieved_at": "2026-09-17",
+    "url": "https://www.elsevier.com/products/scopus/content",
+    "download_url": "https://downloads.ctfassets.net/o78em1y1w4i4/7xtaTxNiNcWRTeZkV86eNy/69cf2d506c905dc299531fdc93049dbb/ext_list_Aug_2026.xlsx",
+    "status": "current",
+    "note": "Список источников с историческим покрытием, включая неактивные. Наличие ISSN не доказывает индексацию конкретной статьи или актуальное покрытие журнала.",
+    "issns": 76062,
+    "source_rows": 49009,
+    "serial_conference_rows": 1031,
+    "download_sha256": "11e81f686401c89fbef28de31d1880388bb7122f35c89e09db6e1848237e9afb"
+  },
+  "sjr": {
+    "title": "SCImago Journal Rank",
+    "version": "SJR 2024",
+    "as_of": "2024",
+    "retrieved_at": "2026-03-31",
+    "checked_at": "2026-09-17",
+    "url": "https://www.scimagojr.com/journalrank.php",
+    "status": "outdated",
+    "latest_version": "SJR 2025",
+    "release_url": "https://www.linkedin.com/posts/scimago_sjr-openscience-research-activity-7450242194097098754-vTpj",
+    "note": "Используется SJR 2024. Выпуск SJR 2025 опубликован, но официальная выгрузка пока недоступна из-за Cloudflare; квартиль может быть устаревшим."
+  },
+  "core": {
+    "title": "Рейтинг конференций ICORE",
+    "version": "ICORE2026",
+    "as_of": "2026",
+    "retrieved_at": "2026-04-05",
+    "checked_at": "2026-09-17",
+    "url": "https://portal.core.edu.au/conf-ranks/",
+    "status": "current",
+    "records": 987,
+    "note": "Сверены названия, сокращения, версия и ранги: официальный экспорт совпадает с локальными данными."
+  }
+}

@@ -169,6 +169,54 @@ class TestReferenceEndpoints:
         assert resp.status_code == 200
         assert len(resp.json()) == 4
 
+    async def test_reference_data_200(self, client, mock_repo):
+        from unittest.mock import patch
+
+        metadata = {
+            "white_list": {
+                "title": "Белый список МОН РФ",
+                "version": "ДС/39-пр",
+                "as_of": "2026-03-25",
+                "status": "current",
+            },
+            "scopus": {"version": "August 2026"},
+        }
+        with patch("app.routers.articles.load_reference_data", return_value=metadata):
+            resp = await client.get("/api/articles/reference-data")
+
+        assert resp.status_code == 200
+        assert resp.json()["white_list"]["as_of"] == "2026-03-25"
+        assert resp.json()["scopus"]["version"] == "August 2026"
+
+    async def test_reference_data_tolerates_unavailable_metadata(self, client, mock_repo):
+        from unittest.mock import patch
+
+        with patch("app.routers.articles.load_reference_data", return_value={}):
+            resp = await client.get("/api/articles/reference-data")
+
+        assert resp.status_code == 200
+        assert resp.json() == {}
+
+    async def test_reference_data_drops_invalid_field_types(self, client, mock_repo):
+        import json
+        from pathlib import Path
+        from unittest.mock import patch
+
+        payload = json.dumps(
+            {
+                "sjr": {
+                    "version": 2024,
+                    "latest_version": "SJR 2025",
+                    "status": ["outdated"],
+                }
+            }
+        )
+        with patch.object(Path, "read_text", return_value=payload):
+            resp = await client.get("/api/articles/reference-data")
+
+        assert resp.status_code == 200
+        assert resp.json() == {"sjr": {"latest_version": "SJR 2025"}}
+
 
 class TestStats:
     """Test-plan §3 — GET /api/articles/stats."""
@@ -340,10 +388,27 @@ class TestWhiteListFilter:
 
     async def test_update_white_list_200(self, client, mock_repo):
         from unittest.mock import patch, AsyncMock
-        with patch("app.services.white_list.update_white_list_levels", new_callable=AsyncMock, return_value=100):
+        with patch("app.services.white_list.update_white_list_levels", new_callable=AsyncMock, return_value=100) as update:
             resp = await client.post("/api/articles/update-white-list")
         assert resp.status_code == 200
         assert "message" in resp.json()
+        update.assert_awaited_once()
+        assert update.await_args.kwargs == {"refresh": True}
+
+    async def test_update_white_list_refresh_failure_returns_502(self, client, mock_repo):
+        from unittest.mock import patch, AsyncMock
+
+        with patch(
+            "app.services.white_list.update_white_list_levels",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("RCSI unavailable"),
+        ):
+            resp = await client.post("/api/articles/update-white-list")
+
+        assert resp.status_code == 502
+        assert resp.json()["detail"] == (
+            "Не удалось обновить Белый список из РЦНИ; сохранены прежние данные"
+        )
 
     async def test_core_rank_filter_200(self, client, mock_repo):
         mock_repo.get_filtered.return_value = _make_paginated(items=[], total=0, pages=0)

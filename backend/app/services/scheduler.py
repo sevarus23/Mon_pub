@@ -7,6 +7,8 @@ from app.repositories.article import ArticleRepository
 from app.services.crossref import parse_crossref
 from app.services.openalex import parse_openalex
 from app.services.sjr import update_quartiles_from_csv
+from app.services.white_list import update_white_list_levels
+from app.services.core_ranks import update_core_ranks
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +32,16 @@ async def run_parse() -> dict:
     quartile_count = await update_quartiles_from_csv()
     logger.info("Quartile update: %d articles updated", quartile_count)
 
+    white_list_count = await update_white_list_levels(refresh=True, allow_cached_fallback=True)
+    logger.info("White List update: %d articles updated", white_list_count)
+
     # Normalize article types
     async with async_session() as session:
         repo = ArticleRepository(session)
         types_count = await repo.normalize_all_types()
+        core_count = await update_core_ranks(session)
     logger.info("Type normalization: %d articles updated", types_count)
 
-    return {"crossref": crossref_count, "openalex": openalex_count, "quartiles_updated": quartile_count}
+    return {"crossref": crossref_count, "openalex": openalex_count,
+            "quartiles_updated": quartile_count, "white_list_updated": white_list_count,
+            "core_ranks_updated": core_count}

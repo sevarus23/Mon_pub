@@ -95,6 +95,23 @@ export interface ConferenceInfo {
   white_list_level: number | null;
 }
 
+export interface ReferenceDataItem {
+  title?: string | null;
+  version?: string | null;
+  latest_version?: string | null;
+  as_of?: string | null;
+  retrieved_at?: string | null;
+  url?: string | null;
+  status?: string | null;
+}
+
+export interface ReferenceData {
+  white_list?: ReferenceDataItem | null;
+  scopus?: ReferenceDataItem | null;
+  sjr?: ReferenceDataItem | null;
+  core?: ReferenceDataItem | null;
+}
+
 export const TYPE_LABELS: Record<string, string> = {
   // CrossRef types
   "journal-article": "Статья",

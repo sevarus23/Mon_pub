@@ -137,6 +137,23 @@ class ParseResponse(BaseModel):
     message: str
 
 
+class ReferenceDataItem(BaseModel):
+    title: str | None = None
+    version: str | None = None
+    latest_version: str | None = None
+    as_of: str | None = None
+    retrieved_at: str | None = None
+    url: str | None = None
+    status: str | None = None
+
+
+class ReferenceDataOut(BaseModel):
+    white_list: ReferenceDataItem | None = None
+    scopus: ReferenceDataItem | None = None
+    sjr: ReferenceDataItem | None = None
+    core: ReferenceDataItem | None = None
+
+
 class ScopusImportResponse(BaseModel):
     total_in_file: int
     matched_by_doi: int

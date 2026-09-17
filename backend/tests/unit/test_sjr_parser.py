@@ -3,8 +3,9 @@
 import csv
 import pytest
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.services.sjr import _parse_sjr_csv
+from app.services.sjr import _parse_sjr_csv, update_quartiles_from_csv
 
 
 @pytest.fixture
@@ -65,3 +66,18 @@ class TestParseSjrCsv:
         result = _parse_sjr_csv(sjr_csv)
         assert "1234-5678" in result
         assert result["1234-5678"] == "Q2"
+
+
+async def test_quartile_update_corrects_existing_values(sjr_csv):
+    session = AsyncMock()
+    session.execute.return_value = MagicMock(rowcount=1)
+    context = MagicMock()
+    context.__aenter__ = AsyncMock(return_value=session)
+    context.__aexit__ = AsyncMock(return_value=None)
+    with patch("app.services.sjr.async_session", return_value=context):
+        changed = await update_quartiles_from_csv(sjr_csv)
+    assert changed == 5
+    for call in session.execute.await_args_list:
+        sql = str(call.args[0].compile())
+        assert "quartile IS NULL OR articles.quartile !=" in sql
+    session.commit.assert_awaited_once()

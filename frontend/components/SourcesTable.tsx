@@ -1,17 +1,24 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getSourcesTable } from "@/lib/api";
-import type { SourceInfo } from "@/types";
+import { getReferenceData, getSourcesTable } from "@/lib/api";
+import type { ReferenceData, SourceInfo } from "@/types";
 import { getQuartileClass } from "@/types";
 
 type SortKey = "journal_name" | "article_count" | "quartile" | "white_list_level";
 type SortDir = "asc" | "desc";
 
+function formatMetadataDate(value?: string | null): string | undefined {
+  const date = value?.slice(0, 10);
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined;
+  return `${date.slice(8, 10)}.${date.slice(5, 7)}.${date.slice(0, 4)}`;
+}
+
 export default function SourcesTable() {
   const [sources, setSources] = useState<SourceInfo[]>([]);
   const [filtered, setFiltered] = useState<SourceInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [referenceData, setReferenceData] = useState<ReferenceData>({});
   const [search, setSearch] = useState("");
   const [showOnly, setShowOnly] = useState<"all" | "scopus" | "white_list">("all");
   const [sortKey, setSortKey] = useState<SortKey>("article_count");
@@ -27,6 +34,9 @@ export default function SourcesTable() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+    getReferenceData()
+      .then(setReferenceData)
+      .catch(() => setReferenceData({}));
   }, []);
 
   const sortData = useCallback(
@@ -88,6 +98,12 @@ export default function SourcesTable() {
 
   const scopusCount = sources.filter((s) => s.in_scopus).length;
   const whiteListCount = sources.filter((s) => s.in_white_list).length;
+  const whiteListAsOf = formatMetadataDate(referenceData.white_list?.as_of);
+  const whiteListRetrievedAt = formatMetadataDate(referenceData.white_list?.retrieved_at);
+  const scopusVersion = referenceData.scopus?.version;
+  const sjrVersion = referenceData.sjr?.version;
+  const latestSjrVersion = referenceData.sjr?.latest_version;
+  const sjrIsOutdated = referenceData.sjr?.status === "outdated";
 
   if (loading) {
     return (
@@ -114,7 +130,14 @@ export default function SourcesTable() {
           <div className="text-xs text-text-muted">{"В Белом списке\nМОН РФ"}</div>
         </div>
         <div className="ml-auto self-center text-[0.65rem] text-text-muted italic">
-          Scopus: обновлён 02.2026 &nbsp;|&nbsp; Белый список МОН: обновлён 05.04.2026
+          Scopus: {scopusVersion || "дата не определена"} &nbsp;|&nbsp; Белый список МОН:{" "}
+          {whiteListRetrievedAt ? `получен ${whiteListRetrievedAt}` : "дата не определена"}
+          {whiteListAsOf ? ` (последнее решение: ${whiteListAsOf})` : ""}
+        </div>
+        <div className={`basis-full text-right text-[0.65rem] ${sjrIsOutdated ? "text-amber-700" : "text-text-muted"}`}>
+          Квартили: {sjrVersion || "дата не определена"}
+          {latestSjrVersion ? `; опубликован ${latestSjrVersion}` : ""}
+          {sjrIsOutdated ? " — данные могут быть устаревшими" : ""}
         </div>
       </div>
 

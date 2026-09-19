@@ -1,0 +1,3 @@
+backend/data/white_list_cache.json text eol=lf
+backend/data/source_metadata.json text eol=lf
+backend/data/scimagojr_2025.csv -text

@@ -1,17 +1,57 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getSourcesTable } from "@/lib/api";
-import type { SourceInfo } from "@/types";
+import { getReferenceData, getSourcesTable } from "@/lib/api";
+import type { ReferenceData, ReferenceDataItem, SourceInfo } from "@/types";
 import { getQuartileClass } from "@/types";
 
 type SortKey = "journal_name" | "article_count" | "quartile" | "white_list_level";
 type SortDir = "asc" | "desc";
 
+function formatMetadataDate(value?: string | null): string | undefined {
+  const date = value?.slice(0, 10);
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined;
+  return `${date.slice(8, 10)}.${date.slice(5, 7)}.${date.slice(0, 4)}`;
+}
+
+function externalUrl(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return ["https:", "http:"].includes(url.protocol) ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function SjrMetadata({ metadata }: { metadata?: ReferenceDataItem | null }) {
+  const outdated = metadata?.status === "outdated";
+  const retrievedAt = formatMetadataDate(metadata?.retrieved_at);
+  const newerVersion = metadata?.latest_version !== metadata?.version ? metadata?.latest_version : undefined;
+  const officialUrl = externalUrl(metadata?.url);
+  const mirrorUrl = metadata?.source_kind === "public_mirror" ? externalUrl(metadata?.source_url) : undefined;
+
+  return (
+    <div className={`basis-full text-right text-[0.65rem] ${outdated ? "text-amber-700" : "text-text-muted"}`}>
+      Квартили: {metadata?.version || "дата не определена"}
+      {retrievedAt ? `; получены ${retrievedAt}` : ""}
+      {newerVersion ? `; опубликован ${newerVersion}` : ""}
+      {outdated ? " — данные могут быть устаревшими" : ""}
+      {officialUrl ? (
+        <> · Источник: <a href={officialUrl} target="_blank" rel="noopener noreferrer" className="underline" title={metadata?.attribution || undefined}>SCImago — SCImago Journal &amp; Country Rank</a></>
+      ) : null}
+      {mirrorUrl ? (
+        <>; <a href={mirrorUrl} target="_blank" rel="noopener noreferrer" className="underline">публичный снимок</a></>
+      ) : null}
+    </div>
+  );
+}
+
 export default function SourcesTable() {
   const [sources, setSources] = useState<SourceInfo[]>([]);
   const [filtered, setFiltered] = useState<SourceInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [referenceData, setReferenceData] = useState<ReferenceData>({});
   const [search, setSearch] = useState("");
   const [showOnly, setShowOnly] = useState<"all" | "scopus" | "white_list">("all");
   const [sortKey, setSortKey] = useState<SortKey>("article_count");
@@ -27,6 +67,9 @@ export default function SourcesTable() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+    getReferenceData()
+      .then(setReferenceData)
+      .catch(() => setReferenceData({}));
   }, []);
 
   const sortData = useCallback(
@@ -88,6 +131,9 @@ export default function SourcesTable() {
 
   const scopusCount = sources.filter((s) => s.in_scopus).length;
   const whiteListCount = sources.filter((s) => s.in_white_list).length;
+  const whiteListAsOf = formatMetadataDate(referenceData.white_list?.as_of);
+  const whiteListRetrievedAt = formatMetadataDate(referenceData.white_list?.retrieved_at);
+  const scopusVersion = referenceData.scopus?.version;
 
   if (loading) {
     return (
@@ -114,8 +160,11 @@ export default function SourcesTable() {
           <div className="text-xs text-text-muted">{"В Белом списке\nМОН РФ"}</div>
         </div>
         <div className="ml-auto self-center text-[0.65rem] text-text-muted italic">
-          Scopus: обновлён 02.2026 &nbsp;|&nbsp; Белый список МОН: обновлён 05.04.2026
+          Scopus: {scopusVersion || "дата не определена"} &nbsp;|&nbsp; Белый список МОН:{" "}
+          {whiteListRetrievedAt ? `получен ${whiteListRetrievedAt}` : "дата не определена"}
+          {whiteListAsOf ? ` (последнее решение: ${whiteListAsOf})` : ""}
         </div>
+        <SjrMetadata metadata={referenceData.sjr} />
       </div>
 
       {/* Search + filter buttons */}

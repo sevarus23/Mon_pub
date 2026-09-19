@@ -13,6 +13,7 @@ from app.schemas.article import (
     ConferenceInfo,
     PaginatedArticles,
     ParseResponse,
+    ReferenceDataOut,
     ScopusImportResponse,
     SortBy,
     SortOrder,
@@ -20,6 +21,7 @@ from app.schemas.article import (
     StatsOut,
 )
 from app.services.export import export_csv, export_xlsx
+from app.services.reference_data import load_reference_data
 from app.services.scheduler import run_parse
 from app.services.sjr import update_quartiles_from_csv
 
@@ -130,6 +132,15 @@ async def get_sources_table(
     repo: ArticleRepository = Depends(_get_repo),
 ):
     return await repo.get_sources_table(search=search)
+
+
+@router.get(
+    "/reference-data",
+    response_model=ReferenceDataOut,
+    response_model_exclude_none=True,
+)
+async def get_reference_data():
+    return load_reference_data()
 
 
 @router.get("/export")
@@ -282,7 +293,13 @@ async def trigger_update_white_list(
     session: AsyncSession = Depends(get_session),
 ):
     from app.services.white_list import update_white_list_levels
-    updated = await update_white_list_levels(session)
+    try:
+        updated = await update_white_list_levels(session, refresh=True)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Не удалось обновить Белый список из РЦНИ; сохранены прежние данные",
+        ) from exc
     return ParseResponse(message=f"White list updated: {updated} articles")
 
 

@@ -8,7 +8,13 @@ from unittest.mock import AsyncMock, patch
 class TestRunParse:
     """Test-plan §4.3 — Scheduler run_parse()."""
 
-    async def test_since_date_is_last_minus_7_days(self):
+    @pytest.fixture(autouse=True)
+    def reference_refresh(self):
+        with patch("app.services.scheduler.update_white_list_levels", new_callable=AsyncMock, return_value=0) as white_list, \
+             patch("app.services.scheduler.update_core_ranks", new_callable=AsyncMock, return_value=0):
+            yield white_list
+
+    async def test_since_date_is_last_minus_7_days(self, reference_refresh):
         last_date = date(2024, 3, 15)
         expected_since = date(2024, 3, 8)
 
@@ -30,6 +36,7 @@ class TestRunParse:
 
             mock_cr.assert_called_once_with(expected_since)
             mock_oa.assert_called_once_with(expected_since)
+            reference_refresh.assert_awaited_once_with(refresh=True, allow_cached_fallback=True)
 
     async def test_last_date_none_since_date_none(self):
         mock_repo = AsyncMock()

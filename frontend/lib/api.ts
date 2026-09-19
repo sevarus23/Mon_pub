@@ -1,4 +1,4 @@
-import type { ArticlesResponse, Stats, SourceInfo, ConferenceInfo } from "@/types";
+import type { ArticlesResponse, Stats, SourceInfo, ConferenceInfo, ReferenceData } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/mon_pub";
 
@@ -88,6 +88,10 @@ export async function getConferencesTable(search?: string): Promise<ConferenceIn
 export async function getSourcesTable(search?: string): Promise<SourceInfo[]> {
   const query = search ? `?search=${encodeURIComponent(search)}` : "";
   return fetchJSON<SourceInfo[]>(`${BASE_URL}/api/articles/sources-table${query}`);
+}
+
+export async function getReferenceData(): Promise<ReferenceData> {
+  return fetchJSON<ReferenceData>(`${BASE_URL}/api/articles/reference-data`);
 }
 
 export function getExportUrl(params: {

@@ -50,8 +50,25 @@ def test_load_reference_data_drops_malformed_fields_without_losing_source():
                 "version": 2024,
                 "latest_version": "SJR 2025",
                 "status": ["outdated"],
+                "source_kind": 7,
+                "source_url": {"url": "invalid"},
+                "attribution": ["invalid"],
             }
         }
     )
     with patch.object(Path, "read_text", return_value=payload):
         assert load_reference_data() == {"sjr": {"latest_version": "SJR 2025"}}
+
+
+def test_load_reference_data_preserves_mirror_provenance():
+    metadata = {
+        "version": "SJR 2025",
+        "retrieved_at": "2026-09-19",
+        "source_kind": "public_mirror",
+        "source_url": "https://github.com/example/snapshot",
+        "attribution": "SCImago — SCImago Journal & Country Rank",
+        "url": "https://www.scimagojr.com/journalrank.php?year=2025",
+        "status": "current",
+    }
+    with patch.object(Path, "read_text", return_value=json.dumps({"sjr": metadata})):
+        assert load_reference_data() == {"sjr": metadata}

@@ -180,6 +180,12 @@ class TestReferenceEndpoints:
                 "status": "current",
             },
             "scopus": {"version": "August 2026"},
+            "sjr": {
+                "version": "SJR 2025",
+                "source_kind": "public_mirror",
+                "source_url": "https://github.com/example/snapshot",
+                "attribution": "SCImago — SCImago Journal & Country Rank",
+            },
         }
         with patch("app.routers.articles.load_reference_data", return_value=metadata):
             resp = await client.get("/api/articles/reference-data")
@@ -187,6 +193,7 @@ class TestReferenceEndpoints:
         assert resp.status_code == 200
         assert resp.json()["white_list"]["as_of"] == "2026-03-25"
         assert resp.json()["scopus"]["version"] == "August 2026"
+        assert resp.json()["sjr"] == metadata["sjr"]
 
     async def test_reference_data_tolerates_unavailable_metadata(self, client, mock_repo):
         from unittest.mock import patch
@@ -208,6 +215,9 @@ class TestReferenceEndpoints:
                     "version": 2024,
                     "latest_version": "SJR 2025",
                     "status": ["outdated"],
+                    "source_kind": 7,
+                    "source_url": {"url": "invalid"},
+                    "attribution": ["invalid"],
                 }
             }
         )

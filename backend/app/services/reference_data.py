@@ -14,6 +14,9 @@ REFERENCE_DATA_FIELDS = (
     "as_of",
     "retrieved_at",
     "url",
+    "source_kind",
+    "source_url",
+    "attribution",
     "status",
 )
 

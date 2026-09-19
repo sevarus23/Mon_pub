@@ -144,6 +144,9 @@ class ReferenceDataItem(BaseModel):
     as_of: str | None = None
     retrieved_at: str | None = None
     url: str | None = None
+    source_kind: str | None = None
+    source_url: str | None = None
+    attribution: str | None = None
     status: str | None = None
 
 

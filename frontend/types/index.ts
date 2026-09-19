@@ -102,6 +102,9 @@ export interface ReferenceDataItem {
   as_of?: string | null;
   retrieved_at?: string | null;
   url?: string | null;
+  source_kind?: string | null;
+  source_url?: string | null;
+  attribution?: string | null;
   status?: string | null;
 }
 

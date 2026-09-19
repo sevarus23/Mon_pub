@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getReferenceData, getSourcesTable } from "@/lib/api";
-import type { ReferenceData, SourceInfo } from "@/types";
+import type { ReferenceData, ReferenceDataItem, SourceInfo } from "@/types";
 import { getQuartileClass } from "@/types";
 
 type SortKey = "journal_name" | "article_count" | "quartile" | "white_list_level";
@@ -12,6 +12,39 @@ function formatMetadataDate(value?: string | null): string | undefined {
   const date = value?.slice(0, 10);
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined;
   return `${date.slice(8, 10)}.${date.slice(5, 7)}.${date.slice(0, 4)}`;
+}
+
+function externalUrl(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return ["https:", "http:"].includes(url.protocol) ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function SjrMetadata({ metadata }: { metadata?: ReferenceDataItem | null }) {
+  const outdated = metadata?.status === "outdated";
+  const retrievedAt = formatMetadataDate(metadata?.retrieved_at);
+  const newerVersion = metadata?.latest_version !== metadata?.version ? metadata?.latest_version : undefined;
+  const officialUrl = externalUrl(metadata?.url);
+  const mirrorUrl = metadata?.source_kind === "public_mirror" ? externalUrl(metadata?.source_url) : undefined;
+
+  return (
+    <div className={`basis-full text-right text-[0.65rem] ${outdated ? "text-amber-700" : "text-text-muted"}`}>
+      Квартили: {metadata?.version || "дата не определена"}
+      {retrievedAt ? `; получены ${retrievedAt}` : ""}
+      {newerVersion ? `; опубликован ${newerVersion}` : ""}
+      {outdated ? " — данные могут быть устаревшими" : ""}
+      {officialUrl ? (
+        <> · Источник: <a href={officialUrl} target="_blank" rel="noopener noreferrer" className="underline" title={metadata?.attribution || undefined}>SCImago — SCImago Journal &amp; Country Rank</a></>
+      ) : null}
+      {mirrorUrl ? (
+        <>; <a href={mirrorUrl} target="_blank" rel="noopener noreferrer" className="underline">публичный снимок</a></>
+      ) : null}
+    </div>
+  );
 }
 
 export default function SourcesTable() {
@@ -101,9 +134,6 @@ export default function SourcesTable() {
   const whiteListAsOf = formatMetadataDate(referenceData.white_list?.as_of);
   const whiteListRetrievedAt = formatMetadataDate(referenceData.white_list?.retrieved_at);
   const scopusVersion = referenceData.scopus?.version;
-  const sjrVersion = referenceData.sjr?.version;
-  const latestSjrVersion = referenceData.sjr?.latest_version;
-  const sjrIsOutdated = referenceData.sjr?.status === "outdated";
 
   if (loading) {
     return (
@@ -134,11 +164,7 @@ export default function SourcesTable() {
           {whiteListRetrievedAt ? `получен ${whiteListRetrievedAt}` : "дата не определена"}
           {whiteListAsOf ? ` (последнее решение: ${whiteListAsOf})` : ""}
         </div>
-        <div className={`basis-full text-right text-[0.65rem] ${sjrIsOutdated ? "text-amber-700" : "text-text-muted"}`}>
-          Квартили: {sjrVersion || "дата не определена"}
-          {latestSjrVersion ? `; опубликован ${latestSjrVersion}` : ""}
-          {sjrIsOutdated ? " — данные могут быть устаревшими" : ""}
-        </div>
+        <SjrMetadata metadata={referenceData.sjr} />
       </div>
 
       {/* Search + filter buttons */}

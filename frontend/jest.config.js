@@ -4,7 +4,7 @@ module.exports = {
   transform: {
     "^.+\\.tsx?$": [
       "ts-jest",
-      { tsconfig: "tsconfig.json" },
+      { tsconfig: { jsx: "react-jsx" } },
     ],
   },
   moduleNameMapper: {
